@@ -54,11 +54,11 @@ model Tender {
     description String?
     type        String
     cost        Float
-    companyId   String   @db.ObjectId
-    owner       User     @relation("ownedTenders", fields: [companyId], references: [id], onDelete: Cascade)
-    evaluatorId String   @db.ObjectId
+    companyId   String?  @db.ObjectId
+    owner       User?    @relation("ownedTenders", fields: [companyId], references: [id], onDelete: Cascade)
+    evaluatorId String?  @db.ObjectId
     evaluator   User?    @relation("evaluatedTenders", fields: [evaluatorId], references: [id], onDelete: Cascade)
-    buyerId     String   @db.ObjectId
+    buyerId     String?  @db.ObjectId
     buyer       User?    @relation("boughtTenders", fields: [buyerId], references: [id], onDelete: Cascade)
     bids        Bid[]
     createdAt   DateTime @default(now())
