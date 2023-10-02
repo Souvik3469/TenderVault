@@ -10,5 +10,7 @@ const router = express.Router();
 
 router.get("/user-details", authMiddleware, userController.userDetails);
 router.post("/createtender", authMiddleware, tenderController.createTender);
-
+router.delete("/deletetender", authMiddleware, tenderController.deleteTender);
+router.put("/updatetender", authMiddleware, tenderController.updateTender);
+router.get("/getalltender", authMiddleware, tenderController.getAllTenders);
 export default router;
