@@ -1,0 +1,96 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id               String         @id @default(auto()) @map("_id") @db.ObjectId
+    name             String?
+    email            String?        @unique
+    role             String?        @default("vendor") // vendor, company, admin
+    bio              String?
+    image            String?
+    coverImage       String?
+    profileImage     String?
+    password         String?
+    document         String?
+    boughtTenders    Tender[]       @relation("boughtTenders")
+    ownedTenders     Tender[]       @relation("ownedTenders")
+    evaluatedTenders Tender[]       @relation("evaluatedTenders")
+    notifications    Notification[]
+    questions        Question[]
+    Answer           Answer[]
+    bidAsCompany     Bid[]          @relation("company")
+    bidAsVendor      Bid[]          @relation("vendor")
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
+    hasNotification  Boolean?
+}
+
+model Bid {
+    id        String @id @default(auto()) @map("_id") @db.ObjectId
+    company   User   @relation("company", fields: [companyId], references: [id], onDelete: Cascade)
+    guest     User   @relation("vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+    tender    Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+    tenderId  String @db.ObjectId
+    companyId String @db.ObjectId
+    vendorId  String @db.ObjectId
+    status    String
+    amount    Float
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    location  String?
+    //dates     Date[]
+}
+
+model Tender {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    title       String
+    description String?
+    type        String
+    cost        Float
+    companyId   String   @db.ObjectId
+    owner       User     @relation("ownedTenders", fields: [companyId], references: [id], onDelete: Cascade)
+    evaluatorId String   @db.ObjectId
+    evaluator   User?    @relation("evaluatedTenders", fields: [evaluatorId], references: [id], onDelete: Cascade)
+    buyerId     String   @db.ObjectId
+    buyer       User?    @relation("boughtTenders", fields: [buyerId], references: [id], onDelete: Cascade)
+    bids        Bid[]
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    body      String
+    user      User     @relation(fields: [userId], references: [id])
+    userId    String   @db.ObjectId
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Question {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    text      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    answers   Answer[]
+    User      User?    @relation(fields: [userId], references: [id])
+    userId    String   @db.ObjectId
+}
+
+model Answer {
+    id         String    @id @default(auto()) @map("_id") @db.ObjectId
+    text       String
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    owner      User      @relation(fields: [userId], references: [id])
+    question   Question? @relation(fields: [questionId], references: [id])
+    questionId String    @db.ObjectId
+    userId     String    @db.ObjectId
+}
