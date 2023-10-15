@@ -34,7 +34,7 @@ model User {
 model Bid {
     id        String @id @default(auto()) @map("_id") @db.ObjectId
     company   User   @relation("company", fields: [companyId], references: [id], onDelete: Cascade)
-    guest     User   @relation("vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+    vendor    User   @relation("vendor", fields: [vendorId], references: [id], onDelete: Cascade)
     tender    Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
     tenderId  String @db.ObjectId
     companyId String @db.ObjectId
@@ -54,6 +54,7 @@ model Tender {
     description String?
     type        String
     cost        Float
+    status      String?  @default("unsold")
     companyId   String?  @db.ObjectId
     owner       User?    @relation("ownedTenders", fields: [companyId], references: [id], onDelete: Cascade)
     evaluatorId String?  @db.ObjectId
