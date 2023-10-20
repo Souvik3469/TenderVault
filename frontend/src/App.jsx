@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Register from "./Components/auth/Register";
 import Login from "./Components/auth/Login";
 import Landing from "./Pages/Landing";
+import Home from "./Pages/Home";
 
 function App() {
   function isJWTValid() {
@@ -44,6 +45,7 @@ function App() {
             <Route path="/" element={<Landing/>} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+             <Route path="/home" element={<Home />} />
           </Route>
         </Routes>
         </div>
