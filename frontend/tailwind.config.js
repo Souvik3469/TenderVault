@@ -15,6 +15,7 @@ export default {
         merri: ["Merriweather", "serif"],
         comf: ["Comfortaa", "cursive"],
         right: ["Righteous", "cursive"],
+        mont:[ "Montserrat", "sans-serif"]
       },
     },
   },
