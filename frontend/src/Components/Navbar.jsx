@@ -9,9 +9,9 @@ function Navbar() {
    const [searchTerm, setSearchTerm] = useState('');
 
    const handleSearch = () => {
-     // Implement your search functionality here using the searchTerm state
+
      console.log('Searching for:', searchTerm);
-     // You can replace the console.log with the actual search functionality
+ 
    }
 
    return (
