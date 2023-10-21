@@ -15,7 +15,7 @@ function Navbar() {
    }
 
    return (
-      <div className='flex flex-col bg-blue-950 w-full'>
+      <div className='flex flex-col bg-blue-950 w-full sticky top-0 z-50'>
          <div className="container mx-auto flex flex-wrap p-3 flex-col md:flex-row items-center justify-between">
             <Link to="/">
                <div>
@@ -48,7 +48,8 @@ function Navbar() {
                   <span className="font-mont text-gray-50 text-xl font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Home</span>
                </Link>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Language</span>
-               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Featured</span>
+                <Link to="/createtender"><span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Create</span>
+                </Link>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
             </nav>
             <div className='flex mt-4 md:mt-0'>
