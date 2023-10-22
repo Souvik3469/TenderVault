@@ -8,6 +8,7 @@ import Login from "./Components/auth/Login";
 import Landing from "./Pages/Landing";
 import Home from "./Pages/Home";
 import Createtender from "./Components/Createtender";
+import UpdateTender from "./Components/Updatetender";
 
 function App() {
   function isJWTValid() {
@@ -48,6 +49,7 @@ function App() {
             <Route path="/login" element={<Login />} />
              <Route path="/home" element={<Home />} />
                <Route path="/createtender" element={<Createtender />} />
+               <Route path="/updatetender" element={<UpdateTender />} />
           </Route>
         </Routes>
         </div>
