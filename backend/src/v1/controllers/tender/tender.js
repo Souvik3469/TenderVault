@@ -13,13 +13,13 @@ const tenderController = {
         });
       }
 
-      const { title, description, type, cost } = req.body;
+      const { title, description, category, cost } = req.body;
 
       const newTender = await prisma.tender.create({
         data: {
           title,
           description,
-          type,
+          category,
           cost,
           companyId: req.user.id,
         },
@@ -60,6 +60,39 @@ const tenderController = {
       await prisma.$disconnect();
     }
   },
+  async getMyTenders(req, res, next) {
+  try {
+    if (req.user.role !== "company") {
+      return res.json(customResponse(403, "Only companies are allowed to view their tenders."));
+    }
+
+    const companyId = req.user.id;
+
+    // Find all tenders associated with the authenticated company
+    const myTenders = await prisma.tender.findMany({
+      where: {
+        companyId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Your tenders retrieved successfully",
+      data: myTenders,
+    });
+
+  } catch (error) {
+    console.error("Error getting my tenders:", error);
+    res.json({
+      success: false,
+      message: "Internal server error",
+      data: error,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+,
    async deleteTender(req, res, next) {
     try {
       const { id } = req.query;
@@ -111,7 +144,7 @@ const tenderController = {
   async updateTender(req, res, next) {
     try {
       const { id } = req.query;
-      const { title, description, type, cost,status } = req.body;
+      const { title, description, category, cost,status } = req.body;
       const userId = req.user.id;
       const tender = await prisma.tender.findUnique({
         where: {
@@ -143,7 +176,7 @@ const tenderController = {
         data: {
           title: title,
           description: description,
-          type: type,
+          category: category,
           cost: cost,
           status:status
         },
