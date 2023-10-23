@@ -49,10 +49,12 @@ model Bid {
 }
 
 model Tender {
-    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    id          String  @id @default(auto()) @map("_id") @db.ObjectId
     title       String
     description String?
-    type        String
+    category    String
+    rating      Int?
+
     cost        Float
     status      String?  @default("unsold")
     companyId   String?  @db.ObjectId
