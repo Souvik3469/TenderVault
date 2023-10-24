@@ -32,10 +32,40 @@ const GetUserQuery = () =>
     queryFn: () => GetUser(),
     select: (data) => {
       const res = data.message;
-      console.log("Res:",res);
+      // console.log("Res:",res);
+      return res;
+
+    },
+  });
+const GetVendor = async () => {
+  const { data } = await AuthAPI().get("/user/getvendors");
+  return data;
+};
+const GetVendorQuery = () =>
+  useQuery({
+    queryKey: ["getvendor"],
+    queryFn: () => GetVendor(),
+    select: (data) => {
+      const res = data.message;
+      // console.log("Res:",res);
+      return res;
+
+    },
+  });
+const GetCompany = async () => {
+  const { data } = await AuthAPI().get("/user/getcompany");
+  return data;
+};
+const GetCompanyQuery = () =>
+  useQuery({
+    queryKey: ["getcompany"],
+    queryFn: () => GetCompany(),
+    select: (data) => {
+      const res = data.message;
+       console.log("Res:",res);
       return res;
 
     },
   });
 
-export { GetUserQuery };
+export { GetUserQuery ,GetVendorQuery,GetCompanyQuery};
