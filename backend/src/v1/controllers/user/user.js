@@ -27,5 +27,37 @@ const userController = {
       console.log(err, "err");
     }
   },
+  async getVendors(req, res, next) {
+  try {
+    // Find all users with the "vendor" role
+    const vendors = await prisma.user.findMany({
+      where: {
+        role: "vendor",
+      },
+    });
+
+    res.json(customResponse(200, vendors));
+  } catch (err) {
+    res.json(customResponse(400, err));
+    console.log(err, "err");
+  }
+}
+,
+async getCompanies(req, res, next) {
+  try {
+    // Find all users with the "company" role
+    const companies = await prisma.user.findMany({
+      where: {
+        role: "company",
+      },
+    });
+
+    res.json(customResponse(200, companies));
+  } catch (err) {
+    res.json(customResponse(400, err));
+    console.log(err, "err");
+  }
+}
+
 };
 export default userController;
