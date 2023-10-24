@@ -56,7 +56,9 @@ function Navbar() {
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
             </nav>
             <div className='flex mt-4 md:mt-0'>
+               <Link to="/myprofile">
                <img src={profile} />
+               </Link>
             </div>
          </div>
       </div>

@@ -52,16 +52,16 @@ const getAllTenders = async () => {
   return data;
 };
 
-// Define a query for getting the user's tenders
-// const getMyTendersQuery = () =>
-//   useQuery({
-//     queryKey: ["get-my-tenders"],
-//     queryFn: () => getMyTender(),
-//     select: (data) => {
-//       const res = data.message;
-//       return res;
-//     },
-//   });
+
+const getMyTendersQuery = () =>
+  useQuery({
+    queryKey: ["get-my-tenders"],
+    queryFn: () => getMyTender(),
+    select: (data) => {
+      const res = data.data;
+      return res;
+    },
+  });
 
   const getalltenderquery = () =>
   useQuery({
@@ -74,4 +74,4 @@ const getAllTenders = async () => {
   });
 
 // Export the functions and queries
-export { createTender, updateTender, deleteTender ,getalltenderquery};
+export { createTender, updateTender, deleteTender ,getalltenderquery,getMyTendersQuery};
