@@ -13,7 +13,7 @@ const tenderController = {
         });
       }
 
-      const { title, description, category, cost } = req.body;
+      const { title, description, category, cost,imageUrl } = req.body;
 
       const newTender = await prisma.tender.create({
         data: {
@@ -21,10 +21,14 @@ const tenderController = {
           description,
           category,
           cost,
-          companyId: req.user.id,
+          imageUrl,
+          // companyId: req.user.id,
+           owner: {
+          connect: { id: req.user.id } // Connect the owner to the user who is creating the tender
+        },
         },
       });
-
+// console.log(newTender.owner);
       return res.json({
         success: true,
         message: newTender,

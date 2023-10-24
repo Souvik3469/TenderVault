@@ -124,7 +124,6 @@
 
 // export default Home1;
 
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getalltenderquery } from '../api/tender/index'; // Import the function to get all tenders
@@ -150,7 +149,7 @@ const renderStarRating = (rating) => {
 const Home1 = () => {
   // Use the `useQuery` hook to fetch all tenders
   const { data: tenders, isLoading, isError } = getalltenderquery();
-//console.log("Tenders:",tenders)
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -158,11 +157,12 @@ const Home1 = () => {
   if (isError) {
     return <div>Error loading tenders.</div>;
   }
-
+console.log("tender",tenders);
   return (
     <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
         {tenders.map((tender) => (
+          
           <div
             key={tender.id}
             className="bg-gray-50 rounded-lg p-4 cursor-pointer shadow-md hover:shadow-lg"
@@ -172,17 +172,18 @@ const Home1 = () => {
             }}
           >
             <img
-              src={tender.pictureUrl}
+              src={tender.imageUrl}
               alt={tender.companyName}
               className="w-full h-40 object-cover rounded-lg mb-2"
             />
-            <h2 className="text-xl font-semibold">{tender.tenderName}</h2>
+            <h2 className="text-xl font-semibold">{tender.title}</h2>
             <p className="text-gray-600 text-sm">{tender.description}</p>
             <p className="text-gray-400 text-sm mt-2">
-              Company: {tender.companyName}
+              Company: {tender.owner}
             </p>
+            <p className="text-gray-400 text-sm">Category: {tender.category}</p>
             <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
-            <p className="text-gray-400 text-sm">Closing Date: {tender.closingDate}</p>
+            <p className="text-gray-400 text-sm">Status: {tender.status}</p>
             <div className="flex items-center mt-2">
               <div className="mr-2">{renderStarRating(tender.rating)}</div>
               <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
@@ -203,4 +204,3 @@ const Home1 = () => {
 };
 
 export default Home1;
-
