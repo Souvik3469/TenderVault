@@ -1,9 +1,9 @@
 import React from 'react'
-import img1 from "../img/img1.png"
-import img2 from "../img/img2.png"
-import img3 from "../img/img3.png"
-import img4 from "../img/img4.png"
-import icon2 from "../icons/icon2.png"
+import img1 from "../img/water.jpg"
+import img2 from "../img/cloud.png"
+import img3 from "../img/hotel.jpg"
+import img4 from "../img/solar.jpg"
+
 
 
 function Blog() {
@@ -18,12 +18,10 @@ function Blog() {
                     <img alt="feature" className="object-cover object-center h-8/12 w-full" src={img1} />
                     <div className='flex items-center justify-center px-6 py-3.5'>
                         <div className='flex flex-col my-auto'>
-                            <h2 className='text-2xl'>Zermatt, Switzerland</h2>
-                            <p className='text-base w-11/12'>Marvel on the beauty of the iconic Matterhorn. Find the best places to stay that has the best views of this peak...</p>
+                            <h2 className='text-2xl'>Zysco: Water Treatment Plant Construction</h2>
+                            <p className='text-base w-11/12'>"TenderVault has been the backbone of our tender management. Its comprehensive suite of tools has empowered us to bid smarter, not harder, and win critical projects that have contributed to our substantial growth and reputation in the industry."</p>
                         </div>
-                        <div >
-                            <img alt='icon' src={icon2} />
-                        </div>
+                      
                     </div>
 
 
@@ -34,8 +32,8 @@ function Blog() {
                             <img alt="feature" className="object-cover object-center h-full w-full" src={img2} />
                         </div>
                         <div className="pl-5 w-2/3 h-auto">
-                            <h2 className="text-2xl mb-3">Tuscany, Italy</h2>
-                            <p className='text-base'>The amazing Tuscany is home to famous Renaissance art and architecture and a vast scenic landscape. <span className='text-violet-500'>view full blog...</span></p>
+                            <h2 className="text-2xl mb-3">PyNet: Cloud Computing Infrastructure Deployment</h2>
+                            <p className='text-base'>"TenderVault has revolutionized our tender management process. We've experienced unparalleled efficiency and transparency, resulting in significant cost savings and improved contract success rates."</p>
                         </div>
                     </div>
                     <div className="rounded-lg bg-gray-100 p-2.5 flex mb-4 lg:items-start items-center">
@@ -43,8 +41,8 @@ function Blog() {
                             <img alt="feature" className="object-cover object-center h-full w-full" src={img3} />
                         </div>
                         <div className="pl-5 w-2/3 h-auto">
-                            <h2 className="text-2xl mb-3">Kyoto, Japan</h2>
-                            <p className=" text-base">Kyoto is well known for its temples, gardens, Shinto shrines and wooden houses. It’s time to visit tokyo. <span className='text-violet-500'>view full blog...</span></p>
+                            <h2 className="text-2xl mb-3">Tenzor: Luxury Hotel Renovation Project</h2>
+                            <p className=" text-base">"We owe a substantial part of our success in securing competitive tenders to TenderVault. Its user-friendly interface, robust features, and meticulous tracking capabilities have given us a significant advantage in the market."</p>
                         </div>
                     </div>
                     <div className="rounded-lg bg-gray-100 p-2.5 flex mb-4 lg:items-start items-center">
@@ -52,8 +50,8 @@ function Blog() {
                             <img alt="feature" className="object-cover object-center h-full w-full" src={img4} />
                         </div>
                         <div className="pl-5 w-2/3 h-auto">
-                            <h2 className="text-2xl mb-3">Lofoten Islands, Norway</h2>
-                            <p className="text-base">Featuring razor-sharp peaks housing the arctic landscape. This astonishing island is perfect for your next postcard. <span className='text-violet-500'>view full blog...</span></p>
+                            <h2 className="text-2xl mb-3">Trident Enterprise: Solar Power Farm Development</h2>
+                            <p className="text-base">"TenderVault has been a game-changer for our team. It streamlined our bidding process, providing real-time insights, and enabling us to secure more contracts than ever before. It's truly a cornerstone of our success."</p>
                         </div>
                     </div>
                 </div>
