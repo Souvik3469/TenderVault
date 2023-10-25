@@ -3,7 +3,19 @@ import logo from "../logo.png";
 import profile from "../icons/profile.png";
 import { Link } from 'react-router-dom';
 import { AiOutlineSearch } from "react-icons/ai";
-import { RiSearchLine } from "react-icons/ri"; // Import an icon for the search button
+import LogoutIcon from '@mui/icons-material/Logout';
+import { RiSearchLine } from "react-icons/ri";
+import {
+  Home,
+  HomeOutlined,
+  Add,
+  AddOutlined,
+  SearchOutlined,
+  Search,
+  AccountCircle,
+  AccountCircleOutlined,
+
+} from "@mui/icons-material";
 
 function Navbar() {
    const [searchTerm, setSearchTerm] = useState('');
@@ -54,12 +66,22 @@ function Navbar() {
                  <Link to="/updatetender"><span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Update</span>
                 </Link>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
+               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
+               <Link  onClick={() => {
+                        localStorage.removeItem("token");
+                      }}
+                      to="/login">
+
+      <LogoutIcon style={{ color: "white",fontSize: 32 }} />
+      </Link>
+      </span>
             </nav>
             <div className='flex mt-4 md:mt-0'>
                <Link to="/myprofile">
-               <img src={profile} />
+              <AccountCircleOutlined style={{ color: "white",fontSize: 32}} />
                </Link>
             </div>
+           
          </div>
       </div>
    );

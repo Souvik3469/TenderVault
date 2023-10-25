@@ -11,6 +11,7 @@ const router = express.Router();
 router.get("/user-details", authMiddleware, userController.userDetails);
 router.get("/getvendors", authMiddleware, userController.getVendors);
 router.get("/getcompany", authMiddleware, userController.getCompanies);
+router.get("/getcategory", authMiddleware, tenderController.getAllCategories);
 router.post("/createtender", authMiddleware, tenderController.createTender);
 router.delete("/deletetender", authMiddleware, tenderController.deleteTender);
 router.put("/updatetender", authMiddleware, tenderController.updateTender);

@@ -1,6 +1,6 @@
 import React from 'react'
 
-
+import { Link } from 'react-router-dom';
 function Footer() {
     return (
         <footer className="font-mont text-gray-50 bg-gray-900">
@@ -8,16 +8,19 @@ function Footer() {
                 <p className="text-sm text-gray-50 sm:ml-6 sm:mt-0 mt-4">© 2023, TenderVault — All Rights Reserved.
                 </p>
                 <span className="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start">
-                    <a href='/' className="text-gray-50">
+                   <Link to="/home">
                         Home
+                   </Link>
+                    <a href='/' className="ml-3 text-gray-50">
+                        About Us
                     </a>
                     <a href='/' className="ml-3 text-gray-50">
-                        Blog
+                        Explore
                     </a>
                     <a href='/' className="ml-3 text-gray-50">
-                        Gallery
+                        Stories
                     </a>
-                    <a href='/' className="ml-3 text-gray-50">
+                      <a href='/' className="ml-3 text-gray-50">
                         Contact Us
                     </a>
                 </span>

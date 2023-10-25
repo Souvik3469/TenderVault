@@ -22,13 +22,13 @@ const tenderController = {
           category,
           cost,
           imageUrl,
-          // companyId: req.user.id,
+
            owner: {
-          connect: { id: req.user.id } // Connect the owner to the user who is creating the tender
+          connect: { id: req.user.id } 
         },
         },
       });
-// console.log(newTender.owner);
+
       return res.json({
         success: true,
         message: newTender,
@@ -201,58 +201,7 @@ const tenderController = {
       await prisma.$disconnect();
     }
   },
-//    async createBid(req, res, next) {
-//     try {
-//       const { amount, tenderName } = req.body;
 
-//       // Check if the user has the "vendor" role
-//       if (req.user.role !== "vendor") {
-//         return customResponse(res, 403, "Only vendors can create bids", false);
-//       }
-
-//       // Find the Tender by name
-//       const tenderRecord = await prisma.tender.findFirst({
-//         where: {
-//           title: tenderName,
-//         },
-//       });
-
-//       if (!tenderRecord) {
-//         return customResponse(res, 404, "Tender not found", false);
-//       }
-
-//       // Check if the tender is still open for bids (you can add a "status" field to your Tender model)
-//       if (tenderRecord.status !== "open") {
-//         return customResponse(res, 400, "Tender is closed for bids", false);
-//       }
-
-//       // Check if the bidding amount is greater than or equal to the cost of the tender
-//       if (amount < tenderRecord.cost) {
-//         return customResponse(res, 400, "Bidding amount must be greater than or equal to the cost of the tender", false);
-//       }
-
-//       // Create a new Bid associated with the found Tender
-//       const newBid = await prisma.bid.create({
-//         data: {
-//           amount: amount,
-//           tender: { connect: { id: tenderRecord.id } },
-//           vendor: { connect: { id: req.user.id } }, // Connect the bid to the user (vendor)
-//           status: "pending", // Set the initial status to pending
-//         },
-//       });
-// res.json({
-//         success: true,
-//         message: newBid,
-//       });
-//       return customResponse(res, 200, "Bid created successfully", newBid);
-
-//     } catch (error) {
-//       console.error("Error creating bid:", error);
-//       return customResponse(res, 500, "Internal server error", false);
-//     } finally {
-//       await prisma.$disconnect();
-//     }
-//   },
 async createBid(req, res, next) {
   try {
     const { amount, tenderName } = req.body;
@@ -328,12 +277,7 @@ async getallbids(req, res, next) {
       return res.json(customResponse(404, "Tender not found"));
     }
 
-    // Check if the user is the owner of the tender (i.e., the company that listed the tender)
-    // if (tenderRecord.companyId !== req.user.id) {
-    //   return res.json(customResponse(403, "You do not have permission to view these bids"));
-    // }
 
-    // Find all bids for the specific tender
     const bids = await prisma.bid.findMany({
       where: {
         tenderId: tenderRecord.id,
@@ -356,7 +300,33 @@ async getallbids(req, res, next) {
   } finally {
     await prisma.$disconnect();
   }
-}
+},
+ async getAllCategories(req, res, next) {
+    try {
+      const categories = await prisma.tender.findMany({
+        select: {
+          category: true,
+        },
+      });
+
+      const uniqueCategories = Array.from(new Set(categories.map((tender) => tender.category)));
+
+      res.json({
+        success: true,
+        message: "Categories retrieved successfully",
+        data: uniqueCategories,
+      });
+    } catch (error) {
+      console.error("Error getting categories:", error);
+      res.json({
+        success: false,
+        message: "Internal server error",
+        data: error,
+      });
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
 
 };
 

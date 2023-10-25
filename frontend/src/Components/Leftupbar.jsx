@@ -1,34 +1,33 @@
 import React, { useState } from 'react';
+import { getallcategoryquery } from '../api/tender';
 
 const Leftupbar = () => {
-  // Dummy array of categories
-  const dummyCategories = [
-    {
-      id: 1,
-      name: 'Category 1',
-    },
-    {
-      id: 2,
-      name: 'Category 2',
-    },
-    {
-      id: 3,
-      name: 'Category 3',
-    },
-    // Add more categories as needed
-  ];
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
 
-  // State to track selected categories
+  if (categoriesLoading) {
+    return <div>Loading categories...</div>;
+  }
+
+  if (categoriesError) {
+    return <div>Error loading categories.</div>;
+  }
+
+  console.log('Categories:', categories);
+
+  // State to track selected categories (normalized to lowercase)
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   const handleCategoryChange = (categoryId) => {
+    // Normalize the category names to lowercase
+    const categoryName = categories[categoryId].toLowerCase();
+
     // Check if the category is already selected
-    if (selectedCategories.includes(categoryId)) {
+    if (selectedCategories.includes(categoryName)) {
       // If selected, remove it from the list
-      setSelectedCategories(selectedCategories.filter((id) => id !== categoryId));
+      setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
     } else {
       // If not selected, add it to the list
-      setSelectedCategories([...selectedCategories, categoryId]);
+      setSelectedCategories([...selectedCategories, categoryName]);
     }
   };
 
@@ -40,20 +39,27 @@ const Leftupbar = () => {
         </h1>
       </div>
       <ul>
-        {dummyCategories.map((category) => (
-          <div className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 p-1 group cursor-pointer hover:shadow-lg m-auto" key={category.id}>
+        {categories.map((category, index) => (
+          <div
+            className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 p-1 group cursor-pointer hover:shadow-lg m-auto"
+            key={index}
+          >
             <input
               type="checkbox"
-              id={`category-${category.id}`}
-              checked={selectedCategories.includes(category.id)}
-              onChange={() => handleCategoryChange(category.id)}
-              style={{ transform: 'scale(1.5)' }} 
+              id={`category-${index}`}
+              checked={selectedCategories.includes(category.toLowerCase())}
+              onChange={() => handleCategoryChange(index)}
+              style={{ transform: 'scale(1.5)' }}
             />
             <label
-              htmlFor={`category-${category.id}`}
-              className={`text-base ${selectedCategories.includes(category.id) ? 'text-gray-600' : 'text-gray-400'} font-semibold`}
+              htmlFor={`category-${index}`}
+              className={`text-base ${
+                selectedCategories.includes(category.toLowerCase())
+                  ? 'text-gray-600'
+                  : 'text-gray-400'
+              } font-semibold`}
             >
-              {category.name}
+              {category}
             </label>
           </div>
         ))}
