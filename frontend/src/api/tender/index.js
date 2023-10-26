@@ -51,6 +51,10 @@ const getAllTenders = async () => {
   const { data } = await AuthAPI().get("/user/getalltender");
   return data;
 };
+const tenderdetails = async (tenderId) => {
+  const { data } = await AuthAPI().get(`/user/tenderdetails/${tenderId}`);
+  return data;
+};
 const getAllCategories = async () => {
   const { data } = await AuthAPI().get("/user/getcategory");
   return data;
@@ -85,6 +89,15 @@ const getMyTendersQuery = () =>
       return res;
     },
   });
+  const tenderdetailsquery = (tenderId) =>
+  useQuery({
+    queryKey: ["tenderdetails",tenderId],
+    queryFn: () => tenderdetails(tenderId),
+    select: (data) => {
+      console.log("Tenderdetails",data.data);
+      return data.data;
+    },
+  });
 
 // Export the functions and queries
-export { createTender, updateTender, deleteTender ,getalltenderquery,getMyTendersQuery,getallcategoryquery};
+export { createTender, updateTender, deleteTender ,getalltenderquery,getMyTendersQuery,getallcategoryquery,tenderdetailsquery};
