@@ -4,6 +4,24 @@ import { getallcategoryquery } from '../api/tender';
 const Leftupbar = () => {
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
 
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [filteredTenders, setFilteredTenders] = useState([]);
+
+  const fetchTendersByCategories = (selectedCategories) => {
+ 
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    const categoryName = categories[categoryId].toLowerCase();
+    if (selectedCategories.includes(categoryName)) {
+      setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
+    } else {
+      setSelectedCategories([...selectedCategories, categoryName]);
+    }
+
+    fetchTendersByCategories(selectedCategories);
+  };
+
   if (categoriesLoading) {
     return <div>Loading categories...</div>;
   }
@@ -11,25 +29,6 @@ const Leftupbar = () => {
   if (categoriesError) {
     return <div>Error loading categories.</div>;
   }
-
-  console.log('Categories:', categories);
-
-  // State to track selected categories (normalized to lowercase)
-  const [selectedCategories, setSelectedCategories] = useState([]);
-
-  const handleCategoryChange = (categoryId) => {
-    // Normalize the category names to lowercase
-    const categoryName = categories[categoryId].toLowerCase();
-
-    // Check if the category is already selected
-    if (selectedCategories.includes(categoryName)) {
-      // If selected, remove it from the list
-      setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
-    } else {
-      // If not selected, add it to the list
-      setSelectedCategories([...selectedCategories, categoryName]);
-    }
-  };
 
   return (
     <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">

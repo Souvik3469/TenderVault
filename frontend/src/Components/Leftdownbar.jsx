@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const Leftdownbar = () => {
-  // Dummy array of price ranges
+
   const dummyPriceRanges = [
     {
       id: 1,
@@ -21,16 +21,12 @@ const Leftdownbar = () => {
     },
   ];
 
-  // State to track selected price ranges
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
 
   const handlePriceRangeChange = (priceRangeId) => {
-    // Check if the price range is already selected
     if (selectedPriceRanges.includes(priceRangeId)) {
-      // If selected, remove it from the list
       setSelectedPriceRanges(selectedPriceRanges.filter((id) => id !== priceRangeId));
     } else {
-      // If not selected, add it to the list
       setSelectedPriceRanges([...selectedPriceRanges, priceRangeId]);
     }
   };

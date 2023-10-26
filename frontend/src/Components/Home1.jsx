@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getalltenderquery } from '../api/tender/index'; // Import the function to get all tenders
+import { getalltenderquery } from '../api/tender/index'; 
 // import Leftupbar from './Leftupbar';
 // import Leftdownbar from './Leftdownbar';
 
-// Helper function to generate a star rating UI
+
 const renderStarRating = (rating) => {
   const stars = [];
   for (let i = 0; i < 5; i++) {
