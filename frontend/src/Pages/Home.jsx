@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getallcategoryquery, getalltenderquery } from '../api/tender';
+import { Link } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import Rightdownbar from '../Components/Rightdownbar';
 import Leftdownbar from '../Components/Leftdownbar';
@@ -135,9 +136,13 @@ const Home = () => {
                     <button className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2">
                       Bid
                     </button>
+                    <Link to={`/tender/${tender.id}`} >
+
                     <button className="bg-gray-400 text-white rounded-md px-3 py-1">
                       Details
                     </button>
+                      
+</Link>
                   </div>
                 </div>
               ))}

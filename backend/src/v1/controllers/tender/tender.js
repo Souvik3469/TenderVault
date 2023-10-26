@@ -201,21 +201,52 @@ const tenderController = {
       await prisma.$disconnect();
     }
   },
+  async getTenderDetails(req, res, next) {
+  try {
+    const tenderId = req.params.tenderId; // Assuming you're passing the tender ID in the URL
+
+    const tender = await prisma.tender.findUnique({
+      where: {
+        id: tenderId,
+      },
+    });
+
+    if (!tender) {
+      return res.json(customResponse(404, "Tender not found"));
+    }
+
+    res.json({
+      success: true,
+      message: "Tender details retrieved successfully",
+      data: tender,
+    });
+  } catch (error) {
+    console.error("Error getting tender details:", error);
+    res.json({
+      success: false,
+      message: "Internal server error",
+      data: error,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+},
 
 async createBid(req, res, next) {
   try {
-    const { amount, tenderName } = req.body;
+    const { amount } = req.body;
     const vendorId = req.user.id;
+    const tenderId = req.params.tenderId;
 
     // Check if the user has the "vendor" role
     if (req.user.role !== "vendor") {
       return res.json(customResponse(403, "Only vendors can create bids"));
     }
 
-    // Find the Tender by name
-    const tenderRecord = await prisma.tender.findFirst({
+    // Find the Tender by ID
+    const tenderRecord = await prisma.tender.findUnique({
       where: {
-        title: tenderName,
+        id: tenderId,
       },
     });
 
@@ -260,23 +291,22 @@ async createBid(req, res, next) {
   } finally {
     await prisma.$disconnect();
   }
-},
-
+}
+,
 async getallbids(req, res, next) {
   try {
-    const tenderName = req.params.tenderName; // Assuming you're passing the tender name in the URL
+    const tenderId = req.params.tenderId; // Assuming you're passing the tender ID in the URL
 
-    // Find the Tender by name
-    const tenderRecord = await prisma.tender.findFirst({
+    // Find the Tender by ID
+    const tenderRecord = await prisma.tender.findUnique({
       where: {
-        title: tenderName,
+        id: tenderId,
       },
     });
 
     if (!tenderRecord) {
       return res.json(customResponse(404, "Tender not found"));
     }
-
 
     const bids = await prisma.bid.findMany({
       where: {
@@ -300,7 +330,8 @@ async getallbids(req, res, next) {
   } finally {
     await prisma.$disconnect();
   }
-},
+}
+,
  async getAllCategories(req, res, next) {
     try {
       const categories = await prisma.tender.findMany({
