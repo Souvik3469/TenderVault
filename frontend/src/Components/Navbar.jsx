@@ -65,6 +65,8 @@ function Navbar() {
 
                  <Link to="/updatetender"><span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Update</span>
                 </Link>
+                 <Link to="/tenderdetail"><span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Details</span>
+                </Link>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
                <Link  onClick={() => {

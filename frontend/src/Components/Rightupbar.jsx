@@ -31,7 +31,6 @@ console.log("Companies",companies);
               <Avatar className="w-10 h-10 bg-gray-400 rounded-3xl" src={company.profileImage} />
               <h3
                 className="text-gray-900 group-hover:text-gray-200 font-semibold"
-                // Handle navigation or any other action as needed
               >
                 {company.name}
               </h3>
