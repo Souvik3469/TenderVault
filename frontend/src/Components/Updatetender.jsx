@@ -11,10 +11,10 @@ const UpdateTender = () => {
   const { tenderId } = useParams();
   const { data: tenderDetails, isLoading, isError } = tenderdetailsquery(tenderId);
 
-  // Define state variables for form fields
+
   const [tenderName, setTenderName] = useState('');
   const [description, setDescription] = useState('');
-  const [cost, setCost] = useState(0); // Initialize cost as a float
+  const [cost, setCost] = useState(0); 
   const [category, setCategory] = useState('');
   const [document, setDocument] = useState(null);
 
@@ -23,7 +23,7 @@ const UpdateTender = () => {
       const { title, description, cost, category } = tenderDetails;
       setTenderName(title || '');
       setDescription(description || '');
-      setCost(parseFloat(cost) || 0); // Convert cost to a float
+      setCost(parseFloat(cost) || 0); 
       setCategory(category || '');
     }
   }, [tenderDetails, isLoading, isError]);
@@ -46,9 +46,9 @@ const UpdateTender = () => {
     const updatedTender = {
       title: tenderName,
       description,
-      cost: parseFloat(cost), // Convert cost to a float
+      cost: parseFloat(cost), 
       category,
-      // Add any other fields here as needed
+ 
     };
 
     const result = await updateTender(tenderId, updatedTender);
@@ -56,7 +56,7 @@ const UpdateTender = () => {
     if (result.success) {
       setTenderName('');
       setDescription('');
-      setCost(0); // Reset cost to 0
+      setCost(0); 
       setCategory('');
       setDocument(null);
 

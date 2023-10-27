@@ -112,6 +112,7 @@ const Profile1 = () => {
                   '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
               }}
             >
+                 <div className="flex flex-col items-center">
               <img
                 src={tender.imageUrl}
                 alt={tender.companyId}
@@ -146,6 +147,7 @@ const Profile1 = () => {
                 </Link>
               </div>
             </div>
+            </div>
           ))
         ) : (
           allTenders.map((tender) => (
@@ -158,6 +160,7 @@ const Profile1 = () => {
                   '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
               }}
             >
+                 <div className="flex flex-col items-center">
               <img
                 src={tender.imageUrl}
                 alt={tender.companyName}
@@ -180,6 +183,7 @@ const Profile1 = () => {
                   </button>
                 </Link>
               </div>
+            </div>
             </div>
           ))
         )}
