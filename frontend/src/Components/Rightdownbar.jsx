@@ -2,12 +2,15 @@
 import { Avatar } from "@chakra-ui/react";
 import React from "react";
 import { GetVendorQuery } from "../api/user";
+import Loading from "./Loading";
 
 const Rightdownbar = () => {
   const { data: vendors, isLoading: vendorsLoading, isError: vendorsError } = GetVendorQuery();
 
   if (vendorsLoading) {
-    return <div>Loading vendors...</div>;
+    return  <div style={{ minHeight: '800px',minWidth:'400px' }}>
+        <Loading/>
+      </div>
   }
 
   if (vendorsError) {

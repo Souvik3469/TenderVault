@@ -2,18 +2,21 @@
 import { Avatar } from "@chakra-ui/react";
 import React from "react";
 import { GetCompanyQuery } from "../api/user";
+import Loading from "./Loading";
 
 const Rightupbar = () => {
   const { data: companies, isLoading: companiesLoading, isError: companiesError } = GetCompanyQuery();
 
   if (companiesLoading) {
-    return <div>Loading companies...</div>;
+    return  <div style={{ minHeight: '800px',minWidth:'400px' }}>
+        <Loading />
+      </div>
   }
 
   if (companiesError) {
     return <div>Error loading companies.</div>;
   }
-console.log("Companies",companies);
+// console.log("Companies",companies);
   return (
     <div className="w-[70%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
       <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">

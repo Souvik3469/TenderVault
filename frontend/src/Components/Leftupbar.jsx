@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getallcategoryquery } from '../api/tender';
+import Loading from './Loading';
 
 const Leftupbar = () => {
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
@@ -23,7 +24,9 @@ const Leftupbar = () => {
   };
 
   if (categoriesLoading) {
-    return <div>Loading categories...</div>;
+    return <div style={{ minHeight: '800px',minWidth:'1200px' }}>
+        <Loading />
+      </div>
   }
 
   if (categoriesError) {
