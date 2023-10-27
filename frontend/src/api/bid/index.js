@@ -24,9 +24,8 @@ const AuthAPI = () => {
 
 
 const createbid = async (amount, tenderId) => {
-  const { data } = await AuthAPI().post("/user/createbid", {
+  const { data } = await AuthAPI().post(`/user/createbid/${tenderId}`, {
     amount,
-    tenderId,
   });
   return data;
 };

@@ -40,6 +40,8 @@ const deleteTender = async (tenderId) => {
   return data;
 };
 
+
+
 // Function to get the user's tenders
 const getMyTender = async () => {
   const { data } = await AuthAPI().get("/user/getmytender");

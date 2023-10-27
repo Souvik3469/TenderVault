@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getalltenderquery, getMyTendersQuery } from '../api/tender/index';
+import { getalltenderquery, getMyTendersQuery, deleteTender } from '../api/tender/index';
 import { GetUserQuery } from '../api/user';
+import Loading from './Loading';
+import { Link } from 'react-router-dom';
+import Navbar from './Navbar';
+import { toast } from 'react-hot-toast';
 
 // Helper function to generate a star rating UI
 const renderStarRating = (rating) => {
@@ -22,6 +26,8 @@ const renderStarRating = (rating) => {
 };
 
 const Profile1 = () => {
+  const [tenderToDelete, setTenderToDelete] = useState(null);
+  const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   // Use the `useQuery` hook to fetch user profile
   const { data: userProfile, isLoading: profileLoading, isError: profileError } = GetUserQuery();
 
@@ -31,8 +37,46 @@ const Profile1 = () => {
   // Use the `useQuery` hook to fetch user's created tenders
   const { data: userTenders, isLoading: userTendersLoading, isError: userTendersError } = getMyTendersQuery();
 
+  const handleDeleteTender = async (tenderId) => {
+    const result = await deleteTender(tenderId);
+
+    if (result.success) {
+      // The tender was deleted successfully
+      console.log(result.message);
+
+      // Optionally, you can update your local state or perform other actions here
+      // For example, you can remove the deleted tender from your local state.
+
+      // Optionally, you can show a success toast message using react-hot-toast
+      toast.success(result.message);
+    } else {
+      // Failed to delete the tender
+      console.error(result.message);
+
+      // Optionally, you can show an error toast message using react-hot-toast
+      toast.error(result.message);
+    }
+
+    // Close the confirmation dialog
+    closeConfirmation();
+  };
+
+  const openConfirmation = (tenderId) => {
+    setTenderToDelete(tenderId);
+    setConfirmationOpen(true);
+  };
+
+  const closeConfirmation = () => {
+    setTenderToDelete(null);
+    setConfirmationOpen(false);
+  };
+
   if (profileLoading || allTendersLoading || userTendersLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
+        <Loading />
+      </div>
+    );
   }
 
   if (profileError || allTendersError || userTendersError) {
@@ -56,7 +100,7 @@ const Profile1 = () => {
       </div>
 
       {/* Display user's tenders or all tenders based on their role */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
         {userProfile.role === 'company' ? (
           userTenders.map((tender) => (
             // Render cards for user's created tenders
@@ -70,31 +114,36 @@ const Profile1 = () => {
             >
               <img
                 src={tender.imageUrl}
-                alt={tender.companyName}
+                alt={tender.companyId}
                 className="w-full h-40 object-cover rounded-lg mb-2"
               />
               <h2 className="text-xl font-semibold">{tender.title}</h2>
               <p className="text-gray-600 text-sm">{tender.description}</p>
-              <p className="text-gray-400 text-sm mt-2">
-                Company: {tender.owner}
-              </p>
+              <p className="text-gray-400 text-sm mt-2">Company: {tender.companyId}</p>
               <p className="text-gray-400 text-sm">Category: {tender.category}</p>
-              <p className="text-gray-400 text-sm">Cost: {tender.cost}</p> {/* Added cost */}
+              <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
               <p className="text-gray-400 text-sm">Status: {tender.status}</p>
               <div className="flex items-center mt-2">
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
               </div>
               <div className="mt-4 flex justify-center items-center">
-                <button className="bg-blue-500 text-white rounded-md px-2 py-1 mr-2">
-                  Update
-                </button>
-                <button className="bg-red-500 text-white rounded-md px-2 py-1 mr-2">
+                <Link to={`/updatetender/${tender.id}`}>
+                  <button className="bg-blue-500 text-white rounded-md px-2 py-1 mr-2">
+                    Update
+                  </button>
+                </Link>
+                <button
+                  onClick={() => openConfirmation(tender.id)}
+                  className="bg-red-500 text-white rounded-md px-2 py-1 mr-2"
+                >
                   Delete
                 </button>
-                <button className="bg-green-500 text-white rounded-md px-2 py-1 mr-2">
-                  Details
-                </button>
+                <Link to={`/tender/${tender.id}`}>
+                  <button className="bg-green-500 text-white rounded-md px-2 py-1 mr-2">
+                    Details
+                  </button>
+                </Link>
               </div>
             </div>
           ))
@@ -116,25 +165,49 @@ const Profile1 = () => {
               />
               <h2 className="text-xl font-semibold">{tender.title}</h2>
               <p className="text-gray-600 text-sm">{tender.description}</p>
-              <p className="text-gray-400 text-sm mt-2">
-                Company: {tender.owner}
-              </p>
+              <p className="text-gray-400 text-sm mt-2">Company: {tender.owner}</p>
               <p className="text-gray-400 text-sm">Category: {tender.category}</p>
-              <p className="text-gray-400 text-sm">Cost: {tender.cost}</p> {/* Added cost */}
+              <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
               <p className="text-gray-400 text-sm">Status: {tender.status}</p>
               <div className="flex items-center mt-2">
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
               </div>
               <div className="mt-4 flex justify-center items-center">
-                <button className="bg-green-500 text-white rounded-md px-3 py-1">
-                  Details
-                </button>
+                <Link to={`/tender/${tender.id}`}>
+                  <button className="bg-green-500 text-white rounded-md px-3 py-1">
+                    Details
+                  </button>
+                </Link>
               </div>
             </div>
           ))
         )}
       </div>
+      {isConfirmationOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg">
+            <p>Are you sure you want to delete this tender?</p>
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={closeConfirmation}
+                className="bg-gray-400 text-white rounded-md px-2 py-1 mr-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteTender(tenderToDelete);
+                  closeConfirmation();
+                }}
+                className="bg-red-500 text-white rounded-md px-2 py-1"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

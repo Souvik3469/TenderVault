@@ -12,6 +12,7 @@ import UpdateTender from "./Components/Updatetender";
 import Profile from "./Components/Profile";
 import TenderDetail from "./Components/TenderDetail";
 import TenderDetails from "./Components/TenderDetails";
+import Loading from "./Components/Loading";
 
 function App() {
   function isJWTValid() {
@@ -53,8 +54,9 @@ function App() {
              <Route path="/home" element={<Home />} />
               <Route path="/myprofile" element={<Profile />} />
                <Route path="/createtender" element={<Createtender />} />
-               <Route path="/tender/:tenderId"  element={<TenderDetails />} />
-               <Route path="/updatetender" element={<UpdateTender />} />
+               <Route path="/tender/:tenderId"  element={<TenderDetail />} />
+               <Route path="/updatetender/:tenderId" element={<UpdateTender />} />
+               <Route path="/loading" element={<Loading />} />
           </Route>
         </Routes>
         </div>

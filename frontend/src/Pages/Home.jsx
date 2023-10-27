@@ -5,6 +5,7 @@ import Navbar from '../Components/Navbar';
 import Rightdownbar from '../Components/Rightdownbar';
 import Leftdownbar from '../Components/Leftdownbar';
 import Rightupbar from '../Components/Rightupbar';
+import Loading from '../Components/Loading';
 
 const renderStarRating = (rating) => {
   const stars = [];
@@ -27,19 +28,19 @@ const Home = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
   const { data: tenders, isLoading: tendersLoading, isError: tendersError } = getalltenderquery();
- if (categoriesLoading) {
-    return <div>Loading categories...</div>;
+ if (categoriesLoading||tendersLoading) {
+    return <div style={{ minHeight: '800px',minWidth:'1200px' }}>
+        <Loading />
+      </div>
   }
 
   if (categoriesError) {
     return <div>Error loading categories.</div>;
   }
-   if (tendersLoading) {
-    return <div>Loading categories...</div>;
-  }
+
 
   if (tendersError) {
-    return <div>Error loading categories.</div>;
+    return <div>Error loading tenders.</div>;
   }
   const filteredTenders = tenders.filter((tender) => {
     if (selectedCategories.length === 0) {
@@ -105,7 +106,7 @@ const Home = () => {
               <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide">
 
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
               {filteredTenders.map((tender) => (
                 <div
                   key={tender.id}
@@ -115,6 +116,7 @@ const Home = () => {
                       '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                   }}
                 >
+                   <div className="flex flex-col items-center">
                   <img
                     src={tender.imageUrl}
                     alt={tender.companyName}
@@ -143,6 +145,7 @@ const Home = () => {
                     </button>
                       
 </Link>
+                  </div>
                   </div>
                 </div>
               ))}
