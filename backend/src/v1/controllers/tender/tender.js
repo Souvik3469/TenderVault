@@ -332,6 +332,59 @@ async getallbids(req, res, next) {
   }
 }
 ,
+async deleteBid(req, res, next) {
+  try {
+    const bidId = req.params.bidId; // Assuming you pass the bid ID in the URL
+    const userId = req.user.id; // The user who is trying to delete the bid
+
+    // Find the bid and its associated user (vendor)
+    const bid = await prisma.bid.findUnique({
+      where: {
+        id: bidId,
+      },
+      include: {
+        vendor: true,
+      },
+    });
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found.",
+      });
+    }
+
+    // Check if the user (vendor) who created the bid is the one trying to delete it
+    if (bid.vendor.id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to delete this bid.",
+      });
+    }
+
+    // Delete the bid
+    await prisma.bid.delete({
+      where: {
+        id: bidId,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Bid deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting bid:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the bid.",
+      error: error.message,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+,
  async getAllCategories(req, res, next) {
     try {
       const categories = await prisma.tender.findMany({
