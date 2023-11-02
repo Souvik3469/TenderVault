@@ -102,7 +102,7 @@ const Profile1 = () => {
       {/* Display user's tenders or all tenders based on their role */}
       <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
         {userProfile.role === 'company' ? (
-          userTenders.map((tender) => (
+          userTenders?.map((tender) => (
             // Render cards for user's created tenders
             <div
               key={tender.id}
