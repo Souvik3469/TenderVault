@@ -21,4 +21,6 @@ router.get("/getmytender", authMiddleware, tenderController.getMyTenders);
 router.post("/createbid/:tenderId", authMiddleware, tenderController.createBid);
 router.get("/getallbids/:tenderId", authMiddleware, tenderController.getallbids);
 router.delete("/deletebid/:bidId", authMiddleware, tenderController.deleteBid);
+router.put("/acceptbid/:bidId", authMiddleware, tenderController.acceptBid);
+router.put("/rejectbid/:bidId", authMiddleware, tenderController.rejectBid);
 export default router;

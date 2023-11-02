@@ -385,6 +385,151 @@ async deleteBid(req, res, next) {
   }
 }
 ,
+async acceptBid(req, res, next) {
+  try {
+    const { bidId } = req.params;
+    const userId = req.user.id;
+
+    const bid = await prisma.bid.findUnique({
+      where: {
+        id: bidId,
+      },
+      include: {
+        tender: {
+          include: {
+            owner: true,
+          },
+        },
+        vendor: true,
+      },
+    });
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found.",
+      });
+    }
+
+    // Check if the user (owner of the tender) is the one trying to accept the bid
+    if (bid.tender.companyId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to accept this bid.",
+      });
+    }
+
+    // Check if the bid status is "pending"
+    if (bid.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only bids with 'pending' status can be accepted.",
+      });
+    }
+
+    // Update the bid status to "accepted"
+    const acceptedBid = await prisma.bid.update({
+      where: {
+        id: bidId,
+      },
+      data: {
+        status: "accepted",
+      },
+    });
+
+    // Update the tender status to "sold" and associate the buyer (vendor)
+    const updatedTender = await prisma.tender.update({
+      where: {
+        id: bid.tenderId,
+      },
+      data: {
+        status: "sold",
+        buyerId: bid.vendorId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Bid accepted successfully.",
+      data: {
+        acceptedBid,
+        updatedTender,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error accepting bid:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while accepting the bid.",
+      error: error.message,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+},
+async rejectBid(req, res, next) {
+  try {
+    const { bidId } = req.params;
+    const userId = req.user.id;
+
+    const bid = await prisma.bid.findUnique({
+      where: {
+        id: bidId,
+      },
+      include: {
+        tender: {
+          include: {
+            owner: true,
+          },
+        },
+        vendor: true,
+      },
+    });
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found.",
+      });
+    }
+
+    // Check if the user (owner of the tender) is the one trying to reject the bid
+    if (bid.tender.companyId!== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to reject this bid.",
+      });
+    }
+
+    // Update the bid status to "rejected"
+    const rejectedBid = await prisma.bid.update({
+      where: {
+        id: bidId,
+      },
+      data: {
+        status: "rejected",
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Bid rejected successfully.",
+      data: rejectedBid,
+    });
+
+  } catch (error) {
+    console.error("Error rejecting bid:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while rejecting the bid.",
+      error: error.message,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+,
  async getAllCategories(req, res, next) {
     try {
       const categories = await prisma.tender.findMany({
