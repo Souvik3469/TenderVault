@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { getallbidsquery, createbid } from '../api/bid';
 import {GetUserQuery} from '../api/user'
+import { deletebid } from '../api/bid';
 
 import { useParams } from 'react-router-dom';
 import { tenderdetailsquery } from '../api/tender';
 import { toast } from 'react-hot-toast';
 import Loading from './Loading'
-
 const TenderDetails = () => {
   const { tenderId } = useParams();
   const [isBidding, setIsBidding] = useState(false);
   const [bidAmount, setBidAmount] = useState(0);
-   const [sortBy, setSortBy] = useState(null);
-    const { data: user, isLoading: userLoading, isError: userError} = GetUserQuery();
-   const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError} = tenderdetailsquery(tenderId);
-  const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId); // Pass 'tenderId' to getallbidsquery
+  const [sortBy, setSortBy] = useState(null);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+  // State to store the bid to delete
+  const [bidToDelete, setBidToDelete] = useState(null);
+  const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
+  const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError } = tenderdetailsquery(tenderId);
+  const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
 
-// console.log("TenderId",tenderId);
- if (userLoading || tenderDetailsLoading || bidsLoading) {
+  if (userLoading || tenderDetailsLoading || bidsLoading) {
     return (
-      <div style={{ minHeight: '800px',minWidth:'1200px' }}>
+      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
         <Loading />
       </div>
     );
@@ -32,39 +34,36 @@ const TenderDetails = () => {
     return <div>Error loading tenderdetails.</div>;
   }
 
-const handleBid = async () => {
-  try {
-    const bidAmountFloat = parseFloat(bidAmount);
+  const handleBid = async () => {
+    try {
+      const bidAmountFloat = parseFloat(bidAmount);
 
-    if (isNaN(bidAmountFloat)) {
-      console.error('Invalid bid amount:', bidAmount);
-       toast.error('Invalid bid amount:');
-      return;
+      if (isNaN(bidAmountFloat)) {
+        console.error('Invalid bid amount:', bidAmount);
+        toast.error('Invalid bid amount:');
+        return;
+      }
+
+      const newBid = await createbid(bidAmountFloat, tenderId);
+
+      setBids((prevBids) => [newBid, ...prevBids]);
+
+      setIsBidding(false);
+      setBidAmount(0);
+    } catch (error) {
+      console.error('Error creating bid:', error);
+
+      toast.error('Failed to create a bid. Please try again later.', error);
     }
+  };
 
-
-    const newBid = await createbid(bidAmountFloat, tenderId);
-
-    setBids((prevBids) => [newBid, ...prevBids]);
-
-    setIsBidding(false);
-    setBidAmount(0);
-  } catch (error) {
-     console.error('Error creating bid:', error);
-
-      toast.error('Failed to create a bid. Please try again later.',error);
-  }
-}
-
-
- 
   if (bidsError) {
     return <div><Loading/></div>;
   }
-     const handleSort = (order) => {
+  const handleSort = (order) => {
     setSortBy(order);
   };
-const loggedInUserId = user.id;
+  const loggedInUserId = user.id;
   const sortedBids = [...bids];
 
   if (sortBy === 'lowToHigh') {
@@ -72,10 +71,44 @@ const loggedInUserId = user.id;
   } else if (sortBy === 'highToLow') {
     sortedBids.sort((a, b) => b.amount - a.amount);
   }
- 
-console.log("Bids:",bids);
+
+  // State to control the confirmation dialog
+
+
+  const handleDeleteBid = (bidId) => {
+    // Display the confirmation dialog
+    setBidToDelete(bidId);
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (bidToDelete) {
+      try {
+        const response = await deletebid(bidToDelete);
+        if (response.success) {
+          // Handle successful deletion, for example, by removing the bid from the state
+          setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
+        } else {
+          // Handle cases where deletion was not successful, e.g., show an error message
+          console.error('Failed to delete the bid:', response.message);
+        }
+      } catch (error) {
+        console.error('Error deleting bid:', error);
+      }
+    }
+    // Close the confirmation dialog
+    setShowConfirmation(false);
+    setBidToDelete(null);
+  };
+
+  const handleCancelDelete = () => {
+    // Close the confirmation dialog without deleting
+    setShowConfirmation(false);
+    setBidToDelete(null);
+  };
+
   return (
-   <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide pt-4">
+    <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide pt-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full md:max-w-4xl mx-4 md:mx-auto">
         <div className="flex items-center justify-center">
           <img
@@ -94,9 +127,9 @@ console.log("Bids:",bids);
           <p className="text-gray-600">Status: {tenderDetails.status}</p>
         </div>
       </div>
-     <div className="max-w-4xl mx-auto mt-8 space-y-4">
+      <div className="max-w-4xl mx-auto mt-8 space-y-4">
         {isBidding ? (
-         <div className="bg-white p-4 rounded-lg shadow-md flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg shadow-md flex items-center justify-center">
             <input
               type="text"
               placeholder="Enter your bid amount"
@@ -161,8 +194,11 @@ console.log("Bids:",bids);
                     <button className="bg-green-500 text-white py-2 px-4 rounded-lg mx-2 hover-bg-green-600">
                       Accept
                     </button>
-                    <button className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600">
-                      Reject
+                    <button
+                      onClick={() => handleDeleteBid(bid.id)}
+                      className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
+                    >
+                      Delete
                     </button>
                   </div>
                 ) : (
@@ -182,6 +218,29 @@ console.log("Bids:",bids);
           <p className="text-gray-600">No bids yet.</p>
         )}
       </div>
+
+      {/* Display the confirmation dialog */}
+      {showConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center">
+            <p>Are you sure you want to delete this bid?</p>
+            <div className="mt-4 space-x-4">
+              <button
+                onClick={handleConfirmDelete}
+                className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
+              >
+                Yes
+              </button>
+              <button
+                onClick={handleCancelDelete}
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover-bg-blue-600"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -29,14 +29,14 @@ const createbid = async (amount, tenderId) => {
   });
   return data;
 };
-// const deleteMyQuestion = async (QuestionId) => {
-//   console.log(QuestionId);
-//   const { data } = await AuthAPI().delete(
-//     `/user/delete-question/${QuestionId}`
-//   );
-//   console.log(data);
-//   return data;
-// };
+const deletebid = async (bidId) => {
+  
+  const { data } = await AuthAPI().delete(
+    `/user/deletebid/${bidId}`
+  );
+  console.log(data);
+  return data;
+};
 const getallbids = async (tenderId) => {
 
 
@@ -63,5 +63,5 @@ const getallbidsquery = (tenderId) =>
   });
   export {
   getallbidsquery,
- createbid
+ createbid,deletebid
 };
