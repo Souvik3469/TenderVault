@@ -37,6 +37,16 @@ const deletebid = async (bidId) => {
   console.log(data);
   return data;
 };
+
+const acceptBid = async (bidId) => {
+  const { data } = await AuthAPI().put(`/user/acceptbid/${bidId}`);
+  return data;
+};
+
+const rejectBid = async (bidId) => {
+  const { data } = await AuthAPI().put(`/user/rejectbid/${bidId}`);
+  return data;
+};
 const getallbids = async (tenderId) => {
 
 
@@ -63,5 +73,5 @@ const getallbidsquery = (tenderId) =>
   });
   export {
   getallbidsquery,
- createbid,deletebid
+ createbid,deletebid,acceptBid,rejectBid
 };

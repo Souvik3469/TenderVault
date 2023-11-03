@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getallbidsquery, createbid } from '../api/bid';
+import { getallbidsquery, createbid ,acceptBid,rejectBid} from '../api/bid';
 import {GetUserQuery} from '../api/user'
 import { deletebid } from '../api/bid';
 
@@ -12,9 +12,12 @@ const TenderDetails = () => {
   const [isBidding, setIsBidding] = useState(false);
   const [bidAmount, setBidAmount] = useState(0);
   const [sortBy, setSortBy] = useState(null);
-    const [showConfirmation, setShowConfirmation] = useState(false);
-  // State to store the bid to delete
+   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showAcceptConfirmation, setShowAcceptConfirmation] = useState(false);
+  const [showRejectConfirmation, setShowRejectConfirmation] = useState(false);
   const [bidToDelete, setBidToDelete] = useState(null);
+  const [bidToAccept, setBidToAccept] = useState(null);
+  const [bidToReject, setBidToReject] = useState(null);
   const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
   const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError } = tenderdetailsquery(tenderId);
   const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
@@ -75,36 +78,94 @@ const TenderDetails = () => {
   // State to control the confirmation dialog
 
 
-  const handleDeleteBid = (bidId) => {
-    // Display the confirmation dialog
+   const handleDeleteBid = (bidId) => {
+    // Display the confirmation dialog for deleting the bid
     setBidToDelete(bidId);
-    setShowConfirmation(true);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleAcceptBid = (bidId) => {
+    // Display the confirmation dialog for accepting the bid
+    setBidToAccept(bidId);
+    setShowAcceptConfirmation(true);
+  };
+
+  const handleRejectBid = (bidId) => {
+    // Display the confirmation dialog for rejecting the bid
+    setBidToReject(bidId);
+    setShowRejectConfirmation(true);
   };
 
   const handleConfirmDelete = async () => {
     if (bidToDelete) {
       try {
-        const response = await deletebid(bidToDelete);
-        if (response.success) {
-          // Handle successful deletion, for example, by removing the bid from the state
-          setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
-        } else {
-          // Handle cases where deletion was not successful, e.g., show an error message
-          console.error('Failed to delete the bid:', response.message);
-        }
+        // Send a request to your API to delete the bid
+        // Replace with your actual API function for deleting bids.
+        await deletebid(bidToDelete);
+
+        // Remove the bid from the state if deletion was successful
+        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
+
+        // Show a success message
+        toast.success('Bid deleted successfully');
       } catch (error) {
         console.error('Error deleting bid:', error);
+        // Handle the error, e.g., show an error message
+        toast.error('Failed to delete the bid. Please try again later.');
       }
     }
+
     // Close the confirmation dialog
-    setShowConfirmation(false);
     setBidToDelete(null);
+    setShowDeleteConfirmation(false);
   };
 
-  const handleCancelDelete = () => {
-    // Close the confirmation dialog without deleting
-    setShowConfirmation(false);
-    setBidToDelete(null);
+  const handleConfirmAccept = async () => {
+    if (bidToAccept) {
+      try {
+        // Send a request to your API to accept the bid
+        // Replace with your actual API function for accepting bids.
+        await acceptBid(bidToAccept);
+
+        // Remove the accepted bid from the state
+        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToAccept));
+
+        // Show a success message
+        toast.success('Bid accepted successfully');
+      } catch (error) {
+        console.error('Error accepting bid:', error);
+        // Handle the error, e.g., show an error message
+        toast.error('Failed to accept the bid. Please try again later.');
+      }
+    }
+
+    // Close the confirmation dialog
+    setBidToAccept(null);
+    setShowAcceptConfirmation(false);
+  };
+
+  const handleConfirmReject = async () => {
+    if (bidToReject) {
+      try {
+        // Send a request to your API to reject the bid
+        // Replace with your actual API function for rejecting bids.
+        await rejectBid(bidToReject);
+
+        // Remove the rejected bid from the state
+        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToReject));
+
+        // Show a success message
+        toast.success('Bid rejected successfully');
+      } catch (error) {
+        console.error('Error rejecting bid:', error);
+        // Handle the error, e.g., show an error message
+        toast.error('Failed to reject the bid. Please try again later.');
+      }
+    }
+
+    // Close the confirmation dialog
+    setBidToReject(null);
+    setShowRejectConfirmation(false);
   };
 
   return (
@@ -177,62 +238,123 @@ const TenderDetails = () => {
             </button>
           </div>
         </div>
-        {sortedBids?.length > 0 ? (
-          sortedBids.map((bid, index) => (
-            <div
-              key={index}
-              className="bg-white p-4 rounded-lg shadow-md flex items-center justify-between"
-            >
-              <div>
-                <p className="text-gray-700">Vendor: {bid.vendorId}</p>
-                <p className="text-gray-500">Amount: ${bid.amount}</p>
-                <p className="text-gray-500">Date: {bid.updatedAt}</p>
-              </div>
-              <div>
-                {loggedInUserId === tenderDetails.companyId ? (
-                  <div>
-                    <button className="bg-green-500 text-white py-2 px-4 rounded-lg mx-2 hover-bg-green-600">
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBid(bid.id)}
-                      className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ) : (
-                  loggedInUserId === bid.vendorId && (
-                    <button
-                      onClick={() => handleDeleteBid(bid.id)}
-                      className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  )
+      {sortedBids?.length > 0 ? (
+  sortedBids.map((bid, index) => (
+    <div
+      key={index}
+      className="bg-white p-4 rounded-lg shadow-md flex items-center justify-between"
+    >
+      <div>
+        <p className="text-gray-700">Vendor: {bid.vendorId}</p>
+        <p className="text-gray-500">Amount: ${bid.amount}</p>
+        <p className="text-gray-500">Status: {bid.status}</p>
+        <p className="text-gray-500">Date: {bid.updatedAt}</p>
+      </div>
+      <div>
+        {loggedInUserId === tenderDetails.companyId ? (
+          <div>
+            {tenderDetails.status !== 'sold' && (
+              <div className="flex space-x-2">
+                {bid.status !== 'rejected' && (
+                  <button
+                    className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+                    onClick={() => handleAcceptBid(bid.id)}
+                  >
+                    Accept
+                  </button>
                 )}
+                {bid.status !== 'rejected' && (
+                  <button
+                    className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
+                    onClick={() => handleRejectBid(bid.id)}
+                  >
+                    Reject
+                  </button>
+               ) }
               </div>
-            </div>
-          ))
+            )}
+          </div>
         ) : (
-          <p className="text-gray-600">No bids yet.</p>
+          loggedInUserId === bid.vendorId && (
+            // Conditionally render the "Delete" button based on bid status
+            bid.status !== 'rejected' && (
+              <button
+                onClick={() => handleDeleteBid(bid.id)}
+                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+              >
+                Delete
+              </button>
+            )
+          )
         )}
       </div>
+    </div>
+  ))
+) : (
+  <p className="text-gray-600">No bids yet.</p>
+)}
+      </div>
 
-      {/* Display the confirmation dialog */}
-      {showConfirmation && (
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirmation && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-lg shadow-md text-center">
             <p>Are you sure you want to delete this bid?</p>
             <div className="mt-4 space-x-4">
               <button
                 onClick={handleConfirmDelete}
-                className="bg-red-500 text-white py-2 px-4 rounded-lg hover-bg-red-600"
+                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
               >
                 Yes
               </button>
               <button
-                onClick={handleCancelDelete}
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+     ) }
+
+      {/* Accept Confirmation Dialog */}
+      {showAcceptConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center">
+            <p>Are you sure you want to accept this bid?</p>
+            <div className="mt-4 space-x-4">
+              <button
+                onClick={handleConfirmAccept}
+                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setShowAcceptConfirmation(false)}
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+    )  }
+
+      {/* Reject Confirmation Dialog */}
+      {showRejectConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center">
+            <p>Are you sure you want to reject this bid?</p>
+            <div className="mt-4 space-x-4">
+              <button
+                onClick={handleConfirmReject}
+                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setShowRejectConfirmation(false)}
                 className="bg-blue-500 text-white py-2 px-4 rounded-lg hover-bg-blue-600"
               >
                 No
@@ -240,7 +362,7 @@ const TenderDetails = () => {
             </div>
           </div>
         </div>
-      )}
+     ) }
     </div>
   );
 };
