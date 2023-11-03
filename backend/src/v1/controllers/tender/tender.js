@@ -493,6 +493,12 @@ async rejectBid(req, res, next) {
         message: "Bid not found.",
       });
     }
+        if (bid.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only bids with 'pending' status can be accepted.",
+      });
+    }
 
     // Check if the user (owner of the tender) is the one trying to reject the bid
     if (bid.tender.companyId!== userId) {
