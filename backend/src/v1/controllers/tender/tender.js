@@ -64,6 +64,36 @@ const tenderController = {
       await prisma.$disconnect();
     }
   },
+  async searchTendersByName(req, res, next) {
+  try {
+    const { name } = req.query; // Assuming you're passing the name as a query parameter
+
+    // Use the Prisma client to find tenders that match the provided name
+    const matchingTenders = await prisma.tender.findMany({
+      where: {
+        title: {
+          contains: name, // Check if the title contains the provided name
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Tenders retrieved successfully",
+      data: matchingTenders,
+    });
+  } catch (error) {
+    console.error("Error searching tenders by name:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while searching for tenders by name.",
+      error: error.message,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+,
   async getMyTenders(req, res, next) {
   try {
     if (req.user.role !== "company") {
