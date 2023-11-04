@@ -17,6 +17,7 @@ router.post("/createtender", authMiddleware, tenderController.createTender);
 router.delete("/deletetender", authMiddleware, tenderController.deleteTender);
 router.put("/updatetender", authMiddleware, tenderController.updateTender);
 router.get("/getalltender", authMiddleware, tenderController.getAllTenders);
+router.get("/searchtender", authMiddleware, tenderController.searchTendersByName);
 router.get("/getmytender", authMiddleware, tenderController.getMyTenders);
 router.post("/createbid/:tenderId", authMiddleware, tenderController.createBid);
 router.get("/getallbids/:tenderId", authMiddleware, tenderController.getallbids);

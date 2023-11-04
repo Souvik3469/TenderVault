@@ -163,7 +163,7 @@ const Home = () => {
             <Leftdownbar />
           </div>
           <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide">
-            <div className="flex justify-between p-4">
+            <div className="flex justify-between p-4 px-16">
               <h1
                 className={`cursor-pointer font-bold text-xl ${
                   !showSoldTenders ? 'text-blue-700' : 'text-gray-500'

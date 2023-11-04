@@ -19,6 +19,7 @@ import {
 
 function Navbar() {
    const [searchTerm, setSearchTerm] = useState('');
+    const [dropDown, setDropDown] = useState(false);
 
    const handleSearch = () => {
 
@@ -59,7 +60,8 @@ function Navbar() {
                <Link to="/home">
                   <span className="font-mont text-gray-50 text-xl font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Home</span>
                </Link>
-               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Language</span>
+               {/* <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Language</span> */}
+          
                 <Link to="/createtender"><span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Create</span>
                 </Link>
 
