@@ -1,21 +1,38 @@
 import React, { useState } from 'react';
 import { createTender } from "../api/tender";
-import toast from 'react-hot-toast';
 import Navbar from './Navbar';
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 
 const Createtender = () => {
-  // Define state variables for form fields
   const [tenderInfo, setTenderInfo] = useState({
     title: '',
     description: '',
-    cost: 0.0, // Initialize cost as a float (0.0)
+    cost: 0.0, 
     category: '',
   });
-
-  // Function to handle form input changes
+   const toastsuccess = () => toast.success('Tender Listed Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastfailure = () => toast.error('Some Error occured in listing tender', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    // If the input name is 'cost', convert the value to a float
     const floatValue = name === 'cost' ? parseFloat(value) : value;
     setTenderInfo((prevTenderInfo) => ({
       ...prevTenderInfo,
@@ -23,27 +40,25 @@ const Createtender = () => {
     }));
   };
 
-  // Function to handle form submission
   const createTenderHandler = async (event) => {
     event.preventDefault();
     try {
       const response = await createTender(tenderInfo);
 
       if (response.success) {
-        toast.success('Tender created successfully');
-
+toastsuccess();
         setTenderInfo({
           title: '',
           description: '',
-          cost: 0.0, // Reset cost to float (0.0)
+          cost: 0.0,
           category: '',
         });
       } else {
-        toast.error('Failed to create tender');
+        toastfailure();
       }
     } catch (error) {
       console.error('Error creating tender:', error);
-      toast.error('Error creating tender: ' + error.message);
+      toastfailure();
     }
   };
 
@@ -88,8 +103,8 @@ const Createtender = () => {
               Cost
             </label>
             <input
-              type="number" // Use type "number" for float input
-              step="0.01" // Define the step to allow decimal values
+              type="number" 
+              step="0.01" 
               id="cost"
               name="cost"
               className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
@@ -133,6 +148,18 @@ const Createtender = () => {
         </form>
       </div>
     </div>
+   <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
 </div>
   );
 };
