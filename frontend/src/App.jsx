@@ -1,6 +1,8 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster, toast, useToasterStore } from "react-hot-toast";
+//import { Toaster, toast, useToasterStore } from "react-hot-toast";
+  import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 import { useEffect } from "react";
 
 import Register from "./Components/auth/Register";
@@ -15,6 +17,26 @@ import TenderDetails from "./Components/TenderDetails";
 import Loading from "./Components/Loading";
 
 function App() {
+   const toastsuccess = () => toast.success('Please Login', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: false,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastfailure = () => toast.error('Session expired! Please Login', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: false,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   function isJWTValid() {
     const token = localStorage.getItem("token");
     if (token) {
@@ -26,22 +48,24 @@ function App() {
     if (!isJWTValid()) {
       let val = localStorage.getItem("token");
       if (val !== null) {
-        toast.error("Session expired! Please Login");
+        //toast.error("Session expired! Please Login");
+       toastfailure();
       }
       if (val === null) {
-        toast.success("Please Login");
+       // toast.success("Please Login");
+       toastsuccess();
       }
     }
   }, []);
 
-  const MAX_TOAST_LIMIT = 1;
-  const { toasts } = useToasterStore();
-  useEffect(() => {
-    toasts
-      .filter((t) => t.visible)
-      .filter((_, i) => i >= MAX_TOAST_LIMIT)
-      .forEach((t) => toast.dismiss(t.id));
-  }, [toasts]);
+  // const MAX_TOAST_LIMIT = 1;
+  // const { toasts } = useToasterStore();
+  // useEffect(() => {
+  //   toasts
+  //     .filter((t) => t.visible)
+  //     .filter((_, i) => i >= MAX_TOAST_LIMIT)
+  //     .forEach((t) => toast.dismiss(t.id));
+  // }, [toasts]);
 
   return (
     <div className="App">
@@ -59,6 +83,18 @@ function App() {
                <Route path="/loading" element={<Loading />} />
           </Route>
         </Routes>
+          <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar={true}
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
         </div>
   );
 }
