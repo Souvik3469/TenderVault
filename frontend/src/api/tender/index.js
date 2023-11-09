@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-// Define the AuthAPI function to create Axios instance
+
 const AuthAPI = () => {
   if (typeof window !== "undefined") {
     return axios.create({
@@ -22,19 +22,22 @@ const AuthAPI = () => {
   }
 };
 
-// Function to create a new tender
+
 const createTender = async (tenderInfo) => {
   const { data } = await AuthAPI().post("/user/createtender", tenderInfo);
   return data;
 };
 
-// Function to update a tender
+
 const updateTender = async (tenderId, tenderInfo) => {
   const { data } = await AuthAPI().put(`/user/updatetender?id=${tenderId}`, tenderInfo);
   return data;
 };
+const reviewTender = async (tenderId, rating) => {
+ const { data } = await AuthAPI().put(`/user/updatetender?id=${tenderId}`, rating);
+  return data;
+};
 
-// Function to delete a tender
 const deleteTender = async (tenderId) => {
   const { data } = await AuthAPI().delete(`/user/deletetender?id=${tenderId}`);
   return data;
@@ -42,13 +45,13 @@ const deleteTender = async (tenderId) => {
 
 
 
-// Function to get the user's tenders
+
 const getMyTender = async () => {
   const { data } = await AuthAPI().get("/user/getmytender");
   return data;
 };
 
-// Function to get all tenders (consider changing the endpoint if needed)
+
 const getAllTenders = async () => {
   const { data } = await AuthAPI().get("/user/getalltender");
   return data;
@@ -114,9 +117,8 @@ const getMyTendersQuery = () =>
     select: (data) => {
       console.log("Search",data)
       return data;
-    }, // You can modify this to select the data you need
+    },
   });
 
 
-// Export the functions and queries
-export { createTender, updateTender, deleteTender ,getalltenderquery,getMyTendersQuery,getallcategoryquery,tenderdetailsquery,searchTendersQuery};
+export { createTender, updateTender,reviewTender, deleteTender ,getalltenderquery,getMyTendersQuery,getallcategoryquery,tenderdetailsquery,searchTendersQuery};

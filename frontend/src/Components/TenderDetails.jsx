@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getallbidsquery, createbid ,acceptBid,rejectBid} from '../api/bid';
 import {GetUserQuery} from '../api/user'
+import {tenderdetailsquery} from '../api/tender'
 import { deletebid } from '../api/bid';
 
 import { useParams } from 'react-router-dom';
-import { tenderdetailsquery } from '../api/tender';
-import { toast } from 'react-hot-toast';
+
 import Loading from './Loading'
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 const TenderDetails = () => {
   const { tenderId } = useParams();
   const [isBidding, setIsBidding] = useState(false);
@@ -18,10 +20,97 @@ const TenderDetails = () => {
   const [bidToDelete, setBidToDelete] = useState(null);
   const [bidToAccept, setBidToAccept] = useState(null);
   const [bidToReject, setBidToReject] = useState(null);
+ const [bids, setBids] = useState([]); 
   const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
   const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError } = tenderdetailsquery(tenderId);
-  const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
+  const { data: bidsData, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
 
+ 
+  const toastbidaddsuccess = () => toast.success('Bid Listed Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastbidaddfailure = () => toast.error('Some Error occured in listing bid', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+ const toastbidacceptsuccess = () => toast.success('Bid Accepted Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastbidacceptfailure = () => toast.error('Some Error occured in accepting bid', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+ const toastbidrejectsuccess = () => toast.success('Bid Rejected Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastbidrejectfailure = () => toast.error('Some Error occured in rejecting bid', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+ const toastbiddeletsuccess = () => toast.success('Bid Deleted Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastbiddeletefailure = () => toast.error('Some Error occured in deleting bid', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+useEffect(() => {
+    if (!bidsLoading && bidsData) {
+      setBids(bidsData);
+    }
+  }, [bidsData, bidsLoading]);
   if (userLoading || tenderDetailsLoading || bidsLoading) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
@@ -43,7 +132,9 @@ const TenderDetails = () => {
 
       if (isNaN(bidAmountFloat)) {
         console.error('Invalid bid amount:', bidAmount);
-        toast.error('Invalid bid amount:');
+
+       // toast.error('Invalid bid amount:');
+       toastbidaddfailure();
         return;
       }
 
@@ -53,10 +144,11 @@ const TenderDetails = () => {
 
       setIsBidding(false);
       setBidAmount(0);
+      toastbidaddsuccess();
     } catch (error) {
       console.error('Error creating bid:', error);
-
-      toast.error('Failed to create a bid. Please try again later.', error);
+      toastbidaddfailure();
+     // toast.error('Failed to create a bid. Please try again later.', error);
     }
   };
 
@@ -66,6 +158,8 @@ const TenderDetails = () => {
   const handleSort = (order) => {
     setSortBy(order);
   };
+ // const bid1=tenderDetails.bid;
+ 
   const loggedInUserId = user.id;
   const sortedBids = [...bids];
 
@@ -75,23 +169,23 @@ const TenderDetails = () => {
     sortedBids.sort((a, b) => b.amount - a.amount);
   }
 
-  // State to control the confirmation dialog
+
 
 
    const handleDeleteBid = (bidId) => {
-    // Display the confirmation dialog for deleting the bid
+   
     setBidToDelete(bidId);
     setShowDeleteConfirmation(true);
   };
 
   const handleAcceptBid = (bidId) => {
-    // Display the confirmation dialog for accepting the bid
+  
     setBidToAccept(bidId);
     setShowAcceptConfirmation(true);
   };
 
   const handleRejectBid = (bidId) => {
-    // Display the confirmation dialog for rejecting the bid
+   
     setBidToReject(bidId);
     setShowRejectConfirmation(true);
   };
@@ -99,23 +193,22 @@ const TenderDetails = () => {
   const handleConfirmDelete = async () => {
     if (bidToDelete) {
       try {
-        // Send a request to your API to delete the bid
-        // Replace with your actual API function for deleting bids.
+        
         await deletebid(bidToDelete);
 
-        // Remove the bid from the state if deletion was successful
+       
         setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
-
-        // Show a success message
-        toast.success('Bid deleted successfully');
+        toastbiddeletsuccess();
+       
+        //toast.success('Bid deleted successfully');
       } catch (error) {
         console.error('Error deleting bid:', error);
-        // Handle the error, e.g., show an error message
-        toast.error('Failed to delete the bid. Please try again later.');
+     toastbiddeletefailure();
+      //  toast.error('Failed to delete the bid. Please try again later.');
       }
     }
 
-    // Close the confirmation dialog
+ 
     setBidToDelete(null);
     setShowDeleteConfirmation(false);
   };
@@ -123,23 +216,21 @@ const TenderDetails = () => {
   const handleConfirmAccept = async () => {
     if (bidToAccept) {
       try {
-        // Send a request to your API to accept the bid
-        // Replace with your actual API function for accepting bids.
+       
         await acceptBid(bidToAccept);
 
-        // Remove the accepted bid from the state
+      
         setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToAccept));
-
-        // Show a success message
-        toast.success('Bid accepted successfully');
+toastbidacceptsuccess();
+       // toast.success('Bid accepted successfully');
       } catch (error) {
         console.error('Error accepting bid:', error);
-        // Handle the error, e.g., show an error message
-        toast.error('Failed to accept the bid. Please try again later.');
+        toastbidacceptfailure();
+       // toast.error('Failed to accept the bid. Please try again later.');
       }
     }
 
-    // Close the confirmation dialog
+  
     setBidToAccept(null);
     setShowAcceptConfirmation(false);
   };
@@ -147,23 +238,21 @@ const TenderDetails = () => {
   const handleConfirmReject = async () => {
     if (bidToReject) {
       try {
-        // Send a request to your API to reject the bid
-        // Replace with your actual API function for rejecting bids.
+      
         await rejectBid(bidToReject);
 
-        // Remove the rejected bid from the state
         setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToReject));
 
-        // Show a success message
-        toast.success('Bid rejected successfully');
+        toastbidrejectsuccess();
+       // toast.success('Bid rejected successfully');
       } catch (error) {
         console.error('Error rejecting bid:', error);
-        // Handle the error, e.g., show an error message
-        toast.error('Failed to reject the bid. Please try again later.');
+         toastbidrejectfailure();
+        //toast.error('Failed to reject the bid. Please try again later.');
       }
     }
 
-    // Close the confirmation dialog
+    
     setBidToReject(null);
     setShowRejectConfirmation(false);
   };
@@ -276,7 +365,7 @@ const TenderDetails = () => {
           </div>
         ) : (
           loggedInUserId === bid.vendorId && (
-            // Conditionally render the "Delete" button based on bid status
+           
             bid.status !== 'rejected' && (
               <button
                 onClick={() => handleDeleteBid(bid.id)}
@@ -295,7 +384,7 @@ const TenderDetails = () => {
 )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
+   
       {showDeleteConfirmation && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-lg shadow-md text-center">
@@ -318,7 +407,7 @@ const TenderDetails = () => {
         </div>
      ) }
 
-      {/* Accept Confirmation Dialog */}
+   
       {showAcceptConfirmation && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-lg shadow-md text-center">
@@ -341,7 +430,7 @@ const TenderDetails = () => {
         </div>
     )  }
 
-      {/* Reject Confirmation Dialog */}
+     
       {showRejectConfirmation && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-lg shadow-md text-center">
@@ -363,6 +452,18 @@ const TenderDetails = () => {
           </div>
         </div>
      ) }
+      <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
     </div>
   );
 };

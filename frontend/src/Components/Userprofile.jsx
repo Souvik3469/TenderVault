@@ -23,7 +23,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
   import 'react-toastify/dist/ReactToastify.css';
 
-const Profile1 = () => {
+const UserProfile = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
    const [showSoldTenders, setShowSoldTenders] = useState(true);
   const [tenderToDelete, setTenderToDelete] = useState(null);
@@ -660,4 +660,4 @@ theme="light"
   );
 };
 
-export default Profile1;
+export default UserProfile;

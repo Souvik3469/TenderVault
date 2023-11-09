@@ -1,7 +1,8 @@
 import { TextField } from "@mui/material";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 import { registerUser } from "../../api";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router";
@@ -12,6 +13,26 @@ function Register() {
   const navigate = useNavigate();
   const [button, setbutton] = useState(false);
   const [apiError, setApiError] = useState(null);
+     const toastregistersuccess = () => toast.success('Register is successfull', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastregisterfailure = () => toast.error('Some Error occured during register', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   const {
     reset,
     register,
@@ -36,7 +57,8 @@ function Register() {
     setbutton(true);
     try {
       const { data } = await registerUser(formData);
-      toast.success(data.message, { id: data.message });
+      // toast.success(data.message, { id: data.message });
+      toastregistersuccess();
       navigate("/login");
       reset();
       setApiError(null);
@@ -44,6 +66,7 @@ function Register() {
       setValue("email", "");
       setValue("picture", null);
     } catch (err) {
+      toastregisterfailure();
       setApiError(err.response.data.message);
       setbutton(false);
     }
@@ -164,6 +187,18 @@ function Register() {
           </form>
         </div>
       </div>
+       <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
     </div>
   );
 }

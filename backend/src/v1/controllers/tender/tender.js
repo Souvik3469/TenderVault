@@ -66,13 +66,13 @@ const tenderController = {
   },
   async searchTendersByName(req, res, next) {
   try {
-    const { name } = req.query; // Assuming you're passing the name as a query parameter
+    const { name } = req.query;
 
-    // Use the Prisma client to find tenders that match the provided name
+   
     const matchingTenders = await prisma.tender.findMany({
       where: {
         title: {
-          contains: name, // Check if the title contains the provided name
+          contains: name,
         },
       },
     });
@@ -102,7 +102,6 @@ const tenderController = {
 
     const companyId = req.user.id;
 
-    // Find all tenders associated with the authenticated company
     const myTenders = await prisma.tender.findMany({
       where: {
         companyId,
@@ -231,9 +230,63 @@ const tenderController = {
       await prisma.$disconnect();
     }
   },
+  async reviewTender(req, res, next) {
+  try {
+    const { rating } = req.body; 
+    const tenderId = req.query.id; 
+    const userId = req.user.id;
+
+
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can review tenders.",
+      });
+    }
+
+   
+    const tender = await prisma.tender.findUnique({
+      where: {
+        id: tenderId,
+      },
+    });
+
+    if (!tender) {
+      return res.status(404).json({
+        success: false,
+        message: "Tender not found.",
+      });
+    }
+
+    const reviewedTender = await prisma.tender.update({
+      where: {
+        id: tenderId,
+      },
+      data: {
+        rating: rating,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Tender reviewed successfully",
+      data: reviewedTender,
+    });
+
+  } catch (error) {
+    console.error("Error reviewing tender:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while reviewing the tender.",
+      error: error.message,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+},
   async getTenderDetails(req, res, next) {
   try {
-    const tenderId = req.params.tenderId; // Assuming you're passing the tender ID in the URL
+    const tenderId = req.params.tenderId; 
 
     const tender = await prisma.tender.findUnique({
       where: {
@@ -268,12 +321,10 @@ async createBid(req, res, next) {
     const vendorId = req.user.id;
     const tenderId = req.params.tenderId;
 
-    // Check if the user has the "vendor" role
     if (req.user.role !== "vendor") {
       return res.json(customResponse(403, "Only vendors can create bids"));
     }
 
-    // Find the Tender by ID
     const tenderRecord = await prisma.tender.findUnique({
       where: {
         id: tenderId,
@@ -284,24 +335,24 @@ async createBid(req, res, next) {
       return res.json(customResponse(404, "Tender not found"));
     }
 
-    // Check if the tender is still open for bids (you can add a "status" field to your Tender model)
+   
     if (tenderRecord.status !== "unsold") {
       return res.json(customResponse(400, "Tender is closed for bids"));
     }
 
-    // Check if the bidding amount is greater than or equal to the cost of the tender
+  
     if (amount < tenderRecord.cost) {
       return res.json(customResponse(400, "Bidding amount must be greater than or equal to the cost of the tender"));
     }
 
-    // Create a new Bid associated with the found Tender, Company, and Vendor
+ 
     const newBid = await prisma.bid.create({
       data: {
         amount: amount,
         tender: { connect: { id: tenderRecord.id } },
-        company: { connect: { id: tenderRecord.companyId } }, // Connect the bid to the company
-        vendor: { connect: { id: vendorId } }, // Connect the bid to the user (vendor)
-        status: "pending", // Set the initial status to pending
+        company: { connect: { id: tenderRecord.companyId } }, 
+        vendor: { connect: { id: vendorId } }, 
+        status: "pending", 
       },
     });
 
@@ -325,9 +376,7 @@ async createBid(req, res, next) {
 ,
 async getallbids(req, res, next) {
   try {
-    const tenderId = req.params.tenderId; // Assuming you're passing the tender ID in the URL
-
-    // Find the Tender by ID
+    const tenderId = req.params.tenderId; 
     const tenderRecord = await prisma.tender.findUnique({
       where: {
         id: tenderId,
@@ -364,10 +413,10 @@ async getallbids(req, res, next) {
 ,
 async deleteBid(req, res, next) {
   try {
-    const bidId = req.params.bidId; // Assuming you pass the bid ID in the URL
-    const userId = req.user.id; // The user who is trying to delete the bid
+    const bidId = req.params.bidId; 
+    const userId = req.user.id; 
 
-    // Find the bid and its associated user (vendor)
+   
     const bid = await prisma.bid.findUnique({
       where: {
         id: bidId,
@@ -384,7 +433,7 @@ async deleteBid(req, res, next) {
       });
     }
 
-    // Check if the user (vendor) who created the bid is the one trying to delete it
+   
     if (bid.vendor.id !== userId) {
       return res.status(403).json({
         success: false,
@@ -392,7 +441,7 @@ async deleteBid(req, res, next) {
       });
     }
 
-    // Delete the bid
+
     await prisma.bid.delete({
       where: {
         id: bidId,
@@ -441,7 +490,6 @@ async acceptBid(req, res, next) {
       });
     }
 
-    // Check if the user (owner of the tender) is the one trying to accept the bid
     if (bid.tender.companyId !== userId) {
       return res.status(403).json({
         success: false,
@@ -449,7 +497,6 @@ async acceptBid(req, res, next) {
       });
     }
 
-    // Check if the bid status is "pending"
     if (bid.status !== "pending") {
       return res.status(400).json({
         success: false,
@@ -457,7 +504,7 @@ async acceptBid(req, res, next) {
       });
     }
 
-    // Update the bid status to "accepted"
+
     const acceptedBid = await prisma.bid.update({
       where: {
         id: bidId,
@@ -467,7 +514,7 @@ async acceptBid(req, res, next) {
       },
     });
 
-    // Update the tender status to "sold" and associate the buyer (vendor)
+
     const updatedTender = await prisma.tender.update({
       where: {
         id: bid.tenderId,
@@ -530,7 +577,6 @@ async rejectBid(req, res, next) {
       });
     }
 
-    // Check if the user (owner of the tender) is the one trying to reject the bid
     if (bid.tender.companyId!== userId) {
       return res.status(403).json({
         success: false,
@@ -538,7 +584,6 @@ async rejectBid(req, res, next) {
       });
     }
 
-    // Update the bid status to "rejected"
     const rejectedBid = await prisma.bid.update({
       where: {
         id: bidId,

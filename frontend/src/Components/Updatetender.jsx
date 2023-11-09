@@ -3,8 +3,10 @@ import Navbar from './Navbar';
 import { updateTender, tenderdetailsquery } from '../api/tender';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
 import Loading from './Loading';
 
 const UpdateTender = () => {
@@ -17,7 +19,27 @@ const UpdateTender = () => {
   const [cost, setCost] = useState(0); 
   const [category, setCategory] = useState('');
   const [document, setDocument] = useState(null);
-
+ let navigate = useNavigate();
+  const toastsuccess = () => toast.success('Tender Listed Succesfully', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastfailure = () => toast.error('Some Error occured in listing tender', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   useEffect(() => {
     if (!isLoading && !isError && tenderDetails) {
       const { title, description, cost, category } = tenderDetails;
@@ -39,7 +61,7 @@ const UpdateTender = () => {
   if (isError) {
     return <div>Error loading tender details.</div>;
   }
-  let navigate = useNavigate();
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -60,11 +82,13 @@ const UpdateTender = () => {
       setCategory('');
       setDocument(null);
 
-      toast.success("Tender updated successfully");
+      //toast.success("Tender updated successfully");
+      toastsuccess();
       navigate('/myprofile');
     } else {
       console.error(result.message);
-      toast.error(result.message);
+      //toast.error(result.message);
+      toastfailure();
     }
   };
 
@@ -151,6 +175,18 @@ const UpdateTender = () => {
           </form>
         </div>
       </div>
+       <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
     </div>
   );
 };

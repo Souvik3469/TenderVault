@@ -5,7 +5,7 @@ import helmet from "helmet";
 import createError from "http-errors";
 import morgan from "morgan";
 import path from "path";
-// import favicon from "serve-favicon";
+
 
 import "./v1/config/env.config";
 

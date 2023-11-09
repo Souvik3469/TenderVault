@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import { useForm } from "react-hook-form";
-import toast, { LoaderIcon } from "react-hot-toast";
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
 import { loginUser, registerUser } from "../../api";
 import {
   AiFillEye,
@@ -45,6 +46,26 @@ function Login() {
       confirmPassword: "",
     },
   });
+     const toastloginsuccess = () => toast.success('Login is successful', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
+   const toastloginfailure = () => toast.error('Some Error occured during login', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   const onSubmit = async (formData) => {
     setbutton(true);
     try {
@@ -53,7 +74,8 @@ function Login() {
       const { data } = response;
       if (response.status === 200) {
         localStorage.setItem("token", data.message.accessToken);
-        toast.success("Login Successful", { id: data.message });
+       // toast.success("Login Successful", { id: data.message });
+       toastloginsuccess();
         navigate("/");
       }
       reset();
@@ -62,7 +84,8 @@ function Login() {
       setShowPassword(false);
     } catch (err) {
       setApiError("please verify your credentials");
-      toast.error("Invalid Credentials");
+      //toast.error("Invalid Credentials");
+       toastloginfailure();
       setbutton(false);
     }
     reset();
@@ -143,7 +166,7 @@ function Login() {
             </div>
             {!button ? (
               <button
-                disabled={isSubmitting} // Disable the button while submitting
+                disabled={isSubmitting}
                 className="py-2 px-10 mx-24 my-4 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-500 hover:text-white hover:scale-110 duration-300"
               >
                 Login
@@ -154,6 +177,18 @@ function Login() {
           </form>
         </div>
       </div>
+        <ToastContainer
+position="top-center"
+autoClose={5000}
+hideProgressBar
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
     </div>
   );
 }
