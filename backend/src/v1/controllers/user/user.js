@@ -14,7 +14,6 @@ const userController = {
 
   async userDetails(req, res, next) {
     try {
-      // find the user
       let user;
       user = await prisma.user.findFirst({
         where: {
@@ -29,7 +28,6 @@ const userController = {
   },
   async getVendors(req, res, next) {
   try {
-    // Find all users with the "vendor" role
     const vendors = await prisma.user.findMany({
       where: {
         role: "vendor",
@@ -45,7 +43,6 @@ const userController = {
 ,
 async getCompanies(req, res, next) {
   try {
-    // Find all users with the "company" role
     const companies = await prisma.user.findMany({
       where: {
         role: "company",

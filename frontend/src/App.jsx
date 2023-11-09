@@ -15,6 +15,8 @@ import Profile from "./Components/Profile";
 import TenderDetail from "./Components/TenderDetail";
 import TenderDetails from "./Components/TenderDetails";
 import Loading from "./Components/Loading";
+import Profile1 from "./Components/Profile1";
+import UserProfile from "./Components/Userprofile";
 
 function App() {
    const toastsuccess = () => toast.success('Please Login', {
@@ -76,9 +78,10 @@ theme: "light",
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
              <Route path="/home" element={<Home />} />
-              <Route path="/myprofile" element={<Profile />} />
+              <Route path="/myprofile" element={<Profile1 />} />
                <Route path="/createtender" element={<Createtender />} />
                <Route path="/tender/:tenderId"  element={<TenderDetail />} />
+               <Route path="/profile/:userId"  element={<UserProfile />} />
                <Route path="/updatetender/:tenderId" element={<UpdateTender />} />
                <Route path="/loading" element={<Loading />} />
           </Route>

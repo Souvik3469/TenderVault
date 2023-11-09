@@ -3,7 +3,7 @@ import { Avatar } from "@chakra-ui/react";
 import React from "react";
 import { GetCompanyQuery } from "../api/user";
 import Loading from "./Loading";
-
+import { Link } from "react-router-dom";
 const Rightupbar = () => {
   const { data: companies, isLoading: companiesLoading, isError: companiesError } = GetCompanyQuery();
 
@@ -32,11 +32,13 @@ const Rightupbar = () => {
               key={company.id}
             >
               <Avatar className="w-10 h-10 bg-gray-400 rounded-3xl" src={company.profileImage} />
+              <Link to={`/profile/${company.id}`}>
               <h3
                 className="text-gray-900 group-hover:text-gray-200 font-semibold"
               >
                 {company.name}
               </h3>
+              </Link>
             </div>
           );
         })}

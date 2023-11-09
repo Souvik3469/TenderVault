@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import Navbar from '../Components/Navbar'
 import Hero from '../Components/hero'
 import Featured from '../Components/featured'
@@ -19,6 +19,7 @@ import img1 from "../img/water.jpg"
 import img2 from "../img/cloud.png"
 import img3 from "../img/hotel.jpg"
 import img4 from "../img/solar.jpg"
+import { GetUserQuery } from "../../src/api/user";
 
 import {
   Home,
@@ -37,19 +38,19 @@ import i18n from "../../src/Language/i18n"
 const Landing = () => {
   const [searchTerm, setSearchTerm] = useState('');
     const [dropDown, setDropDown] = useState(false);
+      const [user, setuser] = useState();
  const { t, i18n } = useTranslation();
-
+const data = GetUserQuery();
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
   };
-
-   const handleSearch = () => {
-
-     console.log('Searching for:', searchTerm);
- 
-   }
+ useEffect(() => {
+    setuser(data?.data);
+  }, [data.data]);
+// console.log("User2:",user);
+   
   return (
-    // <div className=" bg-red-600">Landing</div>
+    
      <>
       <div className='flex flex-col w-full'>
         {/* <Navbar /> */}
@@ -63,9 +64,16 @@ const Landing = () => {
             </Link>
           
             <nav className="md:ml-auto flex flex-wrap pl-3 items-center text-base justify-center">
-               <Link to="/home">
+                {
+                    user?(
+                         <Link to="/home">
                   <span className="font-mont text-gray-50 text-xl font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Home</span>
                </Link>
+                    ):(" ")
+                }
+               {/* <Link to="/home">
+                  <span className="font-mont text-gray-50 text-xl font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Home</span>
+               </Link> */}
                {/* <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Language</span> */}
              <span className="font-mont text-gray-800 text-lg font-bold mr-10 hover:text-blue-500 hover:cursor-pointer">
                  <select
@@ -88,10 +96,14 @@ const Landing = () => {
             </select>
             </span>
               
-
-               
-               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
-               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
+<span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
+<span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Explore</span>
+<span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Stories</span>
+             {
+                user?(
+                    <div>
+                     <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Hello, {user.name}</span>
+                     <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
                <Link  onClick={() => {
                         localStorage.removeItem("token");
                       }}
@@ -100,12 +112,55 @@ const Landing = () => {
       <LogoutIcon style={{ color: "white",fontSize: 32 }} />
       </Link>
       </span>
+      </div>
+                ):(
+                   <Link to="/login">
+               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Login</span>
+               </Link> 
+                )
+             }  
+               {/* 
+               <Link to="/login">
+               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Login</span>
+               </Link>
+               <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
+               <Link  onClick={() => {
+                        localStorage.removeItem("token");
+                      }}
+                      to="/login">
+
+      <LogoutIcon style={{ color: "white",fontSize: 32 }} />
+      </Link> */}
+
+           {/* {user ? (
+              <button
+                className=" primary-btn "
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  navigate("/login");
+                }}
+              >
+                LOG OUT
+              </button>
+            ) : (
+              <Link to="/login">
+                <button className=" primary-btn ">Login</button>
+              </Link>
+            )} */}
+      {/* </span> */}
             </nav>
-            <div className='flex mt-4 md:mt-0'>
+            {
+                user?(
+<div className='flex mt-4 md:mt-0'>
                <Link to="/myprofile">
               <AccountCircleOutlined style={{ color: "white",fontSize: 32}} />
                </Link>
             </div>
+                ):(
+" "
+                )
+            }
+            
            
          </div>
       </div>
