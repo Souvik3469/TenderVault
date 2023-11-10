@@ -20,21 +20,38 @@ const TenderDetails = () => {
   const [bidToDelete, setBidToDelete] = useState(null);
   const [bidToAccept, setBidToAccept] = useState(null);
   const [bidToReject, setBidToReject] = useState(null);
-   const [shouldRefetch, setShouldRefetch] = useState(false);
- //const [bids, setBids] = useState([]); 
+   const [shouldRefetch, setShouldRefetch] = useState(false); 
   const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
-  const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError } = tenderdetailsquery(tenderId);
- // const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
+ 
+  const {
+    data: tenderDetails,
+    isLoading: tenderDetailsLoading,
+    isError: tenderDetailsError,
+    refetch: refetchTenderDetails,
+  } = tenderdetailsquery(tenderId, {
+    enabled: shouldRefetch, 
+  });
+
+ 
   const { data: bids, isLoading: bidsLoading, isError: bidsError, refetch: refetchBids } = getallbidsquery(tenderId, {
-    enabled: shouldRefetch, // Only fetch when shouldRefetch is true
+    enabled: shouldRefetch,
   });
  useEffect(() => {
-    // Reset shouldRefetch after refetching
+   
     if (shouldRefetch) {
-      refetchBids().then(() => setShouldRefetch(false));
+      Promise.all([refetchTenderDetails(), refetchBids()]).then(() => setShouldRefetch(false));
     }
-  }, [refetchBids, shouldRefetch]);
-
+  }, [refetchTenderDetails, refetchBids, shouldRefetch]);
+   const toastamountfailure = () => toast.error('Bid amount should be more than cost of tender', {
+position: "top-center",
+autoClose: 5000,
+hideProgressBar: true,
+closeOnClick: true,
+pauseOnHover: true,
+draggable: true,
+progress: undefined,
+theme: "light",
+});
   const toastbidaddsuccess = () => toast.success('Bid Listed Succesfully', {
 position: "top-center",
 autoClose: 5000,
@@ -141,13 +158,14 @@ theme: "light",
         return;
       }
       if(bidAmountFloat<tenderDetails.cost){
-       console.error('Bid amount should be more than cost of tender:', bidAmount);
+        toastamountfailure();
+       console.error('Bid amount should be more than cost of tender', bidAmount);
         return;
       }
 
       const newBid = await createbid(bidAmountFloat, tenderId);
       
-    //  setBids((prevBids) => [newBid, ...prevBids]);
+
       
       setIsBidding(false);
       setBidAmount(0);
@@ -156,7 +174,7 @@ theme: "light",
     } catch (error) {
       console.error('Error creating bid:', error);
         toastbidaddfailure();
-    //  toast.error('Failed to create a bid. Please try again later.', error);
+  
     }
   };
 
@@ -166,7 +184,7 @@ theme: "light",
   const handleSort = (order) => {
     setSortBy(order);
   };
- // const bid1=tenderDetails.bid;
+ 
  
   const loggedInUserId = user.id;
   const sortedBids = [...bids];
@@ -204,15 +222,13 @@ theme: "light",
         
         await deletebid(bidToDelete);
 
-       
-       // setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
         toastbiddeletsuccess();
          setShouldRefetch(true);
-        //toast.success('Bid deleted successfully');
+
       } catch (error) {
         console.error('Error deleting bid:', error);
      toastbiddeletefailure();
-      //  toast.error('Failed to delete the bid. Please try again later.');
+
       }
     }
 
@@ -227,15 +243,13 @@ theme: "light",
        
         await acceptBid(bidToAccept);
 
-      
-        //setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToAccept));
 toastbidacceptsuccess();
   setShouldRefetch(true);
-       // toast.success('Bid accepted successfully');
+  
       } catch (error) {
         console.error('Error accepting bid:', error);
         toastbidacceptfailure();
-       // toast.error('Failed to accept the bid. Please try again later.');
+   
       }
     }
 
@@ -250,15 +264,14 @@ toastbidacceptsuccess();
       
         await rejectBid(bidToReject);
 
-       // setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToReject));
 
         toastbidrejectsuccess();
           setShouldRefetch(true);
-       // toast.success('Bid rejected successfully');
+
       } catch (error) {
         console.error('Error rejecting bid:', error);
          toastbidrejectfailure();
-        //toast.error('Failed to reject the bid. Please try again later.');
+  
       }
     }
 
@@ -266,19 +279,20 @@ toastbidacceptsuccess();
     setBidToReject(null);
     setShowRejectConfirmation(false);
   };
- 
+ console.log("Tenderdetailsname:",tenderDetails);
   return (
     <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide pt-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full md:max-w-4xl mx-4 md:mx-auto">
         <div className="flex items-center justify-center">
           <img
-            src={tenderDetails.imageUrl}
-            alt={tenderDetails.name}
+            src={tenderDetails.imageUrl||'https://media.istockphoto.com/id/1267010934/photo/experienced-engineer-explaining-the-problems-in-construction-works-development-after-recession.jpg?b=1&s=612x612&w=0&k=20&c=SA3ZB024TeuvRX_l_650nAIC3Ebfnf707vkbY1ifYEo='}
+            alt={tenderDetails.title}
             className="w-20 h-20 rounded-full"
           />
           <div className="ml-4">
-            <h2 className="text-3xl font-bold">{tenderDetails.name}</h2>
-            <p className="text-gray-600">{tenderDetails.company}</p>
+            <h2 className="text-3xl font-bold">{tenderDetails.title}</h2>
+            <p className="text-gray-600">{tenderDetails.companyName}</p>
+            <p className="text-gray-600">{tenderDetails.id}</p>
           </div>
         </div>
         <div className="mt-4 text-center">
@@ -344,7 +358,8 @@ toastbidacceptsuccess();
       className="bg-white p-4 rounded-lg shadow-md flex items-center justify-between"
     >
       <div>
-        <p className="text-gray-700">Vendor: {bid.vendorId}</p>
+        <p className="text-gray-700">Reference Id: {bid?.id}</p>
+        <p className="text-gray-700">Vendor: {bid?.vendor.name}</p>
         <p className="text-gray-500">Amount: ${bid.amount}</p>
         <p className="text-gray-500">Status: {bid.status}</p>
         <p className="text-gray-500">Date: {bid.updatedAt}</p>

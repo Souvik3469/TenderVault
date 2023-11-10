@@ -22,7 +22,7 @@ const tenderController = {
           category,
           cost,
           imageUrl,
-
+            companyName:req.user.name,
            owner: {
           connect: { id: req.user.id } 
         },
@@ -352,6 +352,7 @@ async createBid(req, res, next) {
         tender: { connect: { id: tenderRecord.id } },
         company: { connect: { id: tenderRecord.companyId } }, 
         vendor: { connect: { id: vendorId } }, 
+        
         status: "pending", 
       },
     });
@@ -390,7 +391,11 @@ async getallbids(req, res, next) {
     const bids = await prisma.bid.findMany({
       where: {
         tenderId: tenderRecord.id,
+
       },
+      include:{
+        vendor:true
+      }
     });
 
     res.json({

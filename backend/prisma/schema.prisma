@@ -32,30 +32,30 @@ model User {
 }
 
 model Bid {
-    id        String @id @default(auto()) @map("_id") @db.ObjectId
-    company   User   @relation("company", fields: [companyId], references: [id], onDelete: Cascade)
-    vendor    User   @relation("vendor", fields: [vendorId], references: [id], onDelete: Cascade)
-    tender    Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-    tenderId  String @db.ObjectId
-    companyId String @db.ObjectId
-    vendorId  String @db.ObjectId
-    status    String
-    amount    Float
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    location  String?
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    company    User     @relation("company", fields: [companyId], references: [id], onDelete: Cascade)
+    vendor     User     @relation("vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+    tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+    tenderId   String   @db.ObjectId
+    companyId  String   @db.ObjectId
+    vendorId   String   @db.ObjectId
+    status     String
+    amount     Float
+    vendorName String?
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+    location   String?
     //dates     Date[]
 }
 
 model Tender {
-    id          String  @id @default(auto()) @map("_id") @db.ObjectId
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
     title       String
     description String?
     category    String
     rating      Int?
     imageUrl    String?
-
+    companyName String?
     cost        Float
     status      String?  @default("unsold")
     companyId   String   @db.ObjectId

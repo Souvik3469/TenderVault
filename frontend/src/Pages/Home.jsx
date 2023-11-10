@@ -233,12 +233,12 @@ const handlePriceRangeChange = (priceRangeId) => {
               <div className="flex flex-col items-center">
                 <img
                   src={tender.imageUrl||'https://media.istockphoto.com/id/1267010934/photo/experienced-engineer-explaining-the-problems-in-construction-works-development-after-recession.jpg?b=1&s=612x612&w=0&k=20&c=SA3ZB024TeuvRX_l_650nAIC3Ebfnf707vkbY1ifYEo='}
-                  alt={tender.companyId}
+                  alt={tender.companyName}
                   className="w-full h-40 object-cover rounded-lg mb-2"
                 />
                 <h2 className="text-xl font-semibold">{tender.title}</h2>
                 <p className="text-gray-600 text-sm">{tender.description}</p>
-                <p className="text-gray-400 text-sm mt-2">Company: {tender.companyId}</p>
+                <p className="text-gray-400 text-sm mt-2">Company: {tender.companyName}</p>
                 <p className="text-gray-400 text-sm">Category: {tender.category}</p>
                 <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
                 <p className="text-gray-400 text-sm">Status: {tender.status}</p>
@@ -292,12 +292,12 @@ const handlePriceRangeChange = (priceRangeId) => {
               <div className="flex flex-col items-center">
                 <img
                   src={tender.imageUrl||'https://media.istockphoto.com/id/1267010934/photo/experienced-engineer-explaining-the-problems-in-construction-works-development-after-recession.jpg?b=1&s=612x612&w=0&k=20&c=SA3ZB024TeuvRX_l_650nAIC3Ebfnf707vkbY1ifYEo='}
-                  alt={tender.companyId}
+                  alt={tender.companyName}
                   className="w-full h-40 object-cover rounded-lg mb-2"
                 />
                 <h2 className="text-xl font-semibold">{tender.title}</h2>
                 <p className="text-gray-600 text-sm">{tender.description}</p>
-                <p className="text-gray-400 text-sm mt-2">Company: {tender.companyId}</p>
+                <p className="text-gray-400 text-sm mt-2">Company: {tender?.companyName}</p>
                 <p className="text-gray-400 text-sm">Category: {tender.category}</p>
                 <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
                 <p className="text-gray-400 text-sm">Status: {tender.status}</p>
