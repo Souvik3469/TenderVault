@@ -23,7 +23,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
   import 'react-toastify/dist/ReactToastify.css';
 
-const UserProfile = () => {
+const UserProfile = ({userId}) => {
   const [selectedCategories, setSelectedCategories] = useState([]);
    const [showSoldTenders, setShowSoldTenders] = useState(true);
   const [tenderToDelete, setTenderToDelete] = useState(null);
@@ -105,7 +105,7 @@ const renderStarRating = (rating) => {
   return stars;
 };
 
-  console.log("Usertenders",userTenders);
+ // console.log("Usertenders",userTenders);
   const handleSearch =  () => {
     try {
       //const { data } =  searchTendersQuery(searchTerm);

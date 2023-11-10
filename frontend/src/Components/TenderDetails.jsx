@@ -20,12 +20,21 @@ const TenderDetails = () => {
   const [bidToDelete, setBidToDelete] = useState(null);
   const [bidToAccept, setBidToAccept] = useState(null);
   const [bidToReject, setBidToReject] = useState(null);
- const [bids, setBids] = useState([]); 
+   const [shouldRefetch, setShouldRefetch] = useState(false);
+ //const [bids, setBids] = useState([]); 
   const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
   const { data: tenderDetails, isLoading: tenderDetailsLoading, isError: tenderDetailsError } = tenderdetailsquery(tenderId);
-  const { data: bidsData, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
+ // const { data: bids, isLoading: bidsLoading, isError: bidsError } = getallbidsquery(tenderId);
+  const { data: bids, isLoading: bidsLoading, isError: bidsError, refetch: refetchBids } = getallbidsquery(tenderId, {
+    enabled: shouldRefetch, // Only fetch when shouldRefetch is true
+  });
+ useEffect(() => {
+    // Reset shouldRefetch after refetching
+    if (shouldRefetch) {
+      refetchBids().then(() => setShouldRefetch(false));
+    }
+  }, [refetchBids, shouldRefetch]);
 
- 
   const toastbidaddsuccess = () => toast.success('Bid Listed Succesfully', {
 position: "top-center",
 autoClose: 5000,
@@ -106,11 +115,7 @@ draggable: true,
 progress: undefined,
 theme: "light",
 });
-useEffect(() => {
-    if (!bidsLoading && bidsData) {
-      setBids(bidsData);
-    }
-  }, [bidsData, bidsLoading]);
+
   if (userLoading || tenderDetailsLoading || bidsLoading) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
@@ -132,23 +137,26 @@ useEffect(() => {
 
       if (isNaN(bidAmountFloat)) {
         console.error('Invalid bid amount:', bidAmount);
-
-       // toast.error('Invalid bid amount:');
-       toastbidaddfailure();
+        toast.error('Invalid bid amount:');
+        return;
+      }
+      if(bidAmountFloat<tenderDetails.cost){
+       console.error('Bid amount should be more than cost of tender:', bidAmount);
         return;
       }
 
       const newBid = await createbid(bidAmountFloat, tenderId);
-
-      setBids((prevBids) => [newBid, ...prevBids]);
-
+      
+    //  setBids((prevBids) => [newBid, ...prevBids]);
+      
       setIsBidding(false);
       setBidAmount(0);
       toastbidaddsuccess();
+        setShouldRefetch(true);
     } catch (error) {
       console.error('Error creating bid:', error);
-      toastbidaddfailure();
-     // toast.error('Failed to create a bid. Please try again later.', error);
+        toastbidaddfailure();
+    //  toast.error('Failed to create a bid. Please try again later.', error);
     }
   };
 
@@ -197,9 +205,9 @@ useEffect(() => {
         await deletebid(bidToDelete);
 
        
-        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
+       // setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToDelete));
         toastbiddeletsuccess();
-       
+         setShouldRefetch(true);
         //toast.success('Bid deleted successfully');
       } catch (error) {
         console.error('Error deleting bid:', error);
@@ -220,8 +228,9 @@ useEffect(() => {
         await acceptBid(bidToAccept);
 
       
-        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToAccept));
+        //setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToAccept));
 toastbidacceptsuccess();
+  setShouldRefetch(true);
        // toast.success('Bid accepted successfully');
       } catch (error) {
         console.error('Error accepting bid:', error);
@@ -241,9 +250,10 @@ toastbidacceptsuccess();
       
         await rejectBid(bidToReject);
 
-        setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToReject));
+       // setBids((prevBids) => prevBids.filter((bid) => bid.id !== bidToReject));
 
         toastbidrejectsuccess();
+          setShouldRefetch(true);
        // toast.success('Bid rejected successfully');
       } catch (error) {
         console.error('Error rejecting bid:', error);
@@ -256,7 +266,7 @@ toastbidacceptsuccess();
     setBidToReject(null);
     setShowRejectConfirmation(false);
   };
-
+ 
   return (
     <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide pt-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full md:max-w-4xl mx-4 md:mx-auto">

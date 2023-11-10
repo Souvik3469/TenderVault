@@ -20,7 +20,7 @@ const UpdateTender = () => {
   const [category, setCategory] = useState('');
   const [document, setDocument] = useState(null);
  let navigate = useNavigate();
-  const toastsuccess = () => toast.success('Tender Listed Succesfully', {
+  const toastsuccess = () => toast.success('Tender Updated Succesfully', {
 position: "top-center",
 autoClose: 5000,
 hideProgressBar: true,
@@ -30,7 +30,7 @@ draggable: true,
 progress: undefined,
 theme: "light",
 });
-   const toastfailure = () => toast.error('Some Error occured in listing tender', {
+   const toastfailure = () => toast.error('Some Error occured in updating tender', {
 position: "top-center",
 autoClose: 5000,
 hideProgressBar: true,
