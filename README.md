@@ -10,6 +10,10 @@ TenderVault is a sophisticated Tender Management System designed to simplify and
 ## Prototype Demo 
 https://tender-vault-frontend.vercel.app
 
+## Tech Stack
+- FrontEnd: ReactJs, Vite, Tailwind Css
+- BackEnd: Node Js, Express, Prisma, MongoDB
+
 <!-- 
 ## Installation
 
