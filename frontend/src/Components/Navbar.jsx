@@ -19,22 +19,9 @@ import {
 } from "@mui/icons-material";
 
 function Navbar() {
-  
 
 
  const { data: userProfile, isLoading: profileLoading, isError: profileError } = GetUserQuery();
- if(profileLoading){
-return (
-      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
-        <Loading />
-      </div>
-    );
- }
- 
-    if(profileError){
-return <div>Error loading data.</div>;
-    }
-    
    return (
       <div className='flex flex-col bg-blue-950 w-full sticky top-0 z-50'>
          <div className="container mx-auto flex flex-wrap p-3 flex-col md:flex-row items-center justify-between">
@@ -60,7 +47,9 @@ return <div>Error loading data.</div>;
     </Link>
   )
 }
- 
+                
+
+               
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer"> Hello, {userProfile?.name}</span>
                <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
                <Link  onClick={() => {
