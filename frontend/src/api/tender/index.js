@@ -106,7 +106,6 @@ const getMyTendersQuery = () =>
     queryKey: ["tenderdetails",tenderId],
     queryFn: () => tenderdetails(tenderId),
     select: (data) => {
-      console.log("Tenderdetails",data.data);
       return data.data;
     },
   });
@@ -115,7 +114,6 @@ const getMyTendersQuery = () =>
     queryKey: ["search-tenders", searchQuery],
     queryFn: () => searchTenders(searchQuery),
     select: (data) => {
-      console.log("Search",data)
       return data;
     },
   });

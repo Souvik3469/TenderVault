@@ -6,7 +6,7 @@ const Leftupbar = () => {
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
 
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [filteredTenders, setFilteredTenders] = useState([]);
+
 
   const fetchTendersByCategories = (selectedCategories) => {
  

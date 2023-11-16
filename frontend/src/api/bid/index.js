@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-// Define the AuthAPI function to create Axios instance
 const AuthAPI = () => {
   if (typeof window !== "undefined") {
     return axios.create({
@@ -34,7 +33,6 @@ const deletebid = async (bidId) => {
   const { data } = await AuthAPI().delete(
     `/user/deletebid/${bidId}`
   );
-  console.log(data);
   return data;
 };
 
@@ -54,7 +52,6 @@ const getallbids = async (tenderId) => {
     const { data } = await AuthAPI().get(
       `/user/getallbids/${tenderId}`
     );
-    console.log("AllBids1",data);
     return data;
   } catch (error) {
     console.error(error);
@@ -67,7 +64,6 @@ const getallbidsquery = (tenderId) =>
     queryKey: ["getallbids",tenderId],
     queryFn: () => getallbids(tenderId),
     select: (data) => {
-      console.log("Allbids",data.data);
       return data.data;
     },
   });

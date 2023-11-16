@@ -11,33 +11,7 @@ import Profile1 from './Profile1'
 
 const Profile = () => {
   return (
-    
-    // <div className="flex flex-col">
-    //   <div className="sticky top-0">
-    //     <Navbar />
-    //   </div>
-    //   <div className='flex flex-row'>
-    //   <div className="flex flex-col p-4">
-    //     <div className='p-4 '>
-    //     <Leftupbar />
-    //     </div>
-    //     <div className='p-4'>
-    //     <Leftdownbar />
-    //     </div>
-    //   </div>
-    //   <div className="flex-1">
-    //     <Home1 />
-    //   </div>
-    //   <div className="flex flex-col  p-4">
-    //       <div className='p-4'>
-    //     <Rightupbar />
-    //     </div>
-    //     <div className='p-4'>
-    //     <Rightdownbar />
-    //     </div>
-    //   </div>
-    //   </div>
-    // </div>
+
 
 
      <div className="t">

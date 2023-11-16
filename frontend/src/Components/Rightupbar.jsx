@@ -16,7 +16,7 @@ const Rightupbar = () => {
   if (companiesError) {
     return <div>Error loading companies.</div>;
   }
-// console.log("Companies",companies);
+
   return (
     <div className="w-[70%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
       <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
@@ -25,7 +25,7 @@ const Rightupbar = () => {
         </h1>
       </div>
       <ul>
-        {companies.map((company) => {
+        {companies?.map((company) => {
           return (
             <div
               className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 p-1 group cursor-pointer hover:shadow-lg m-auto"

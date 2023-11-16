@@ -19,26 +19,18 @@ import Profile1 from "./Components/Profile1";
 import UserProfile from "./Components/Userprofile";
 
 function App() {
-   const toastsuccess = () => toast.success('Please Login', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: false,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastfailure = () => toast.error('Session expired! Please Login', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: false,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+  const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
   function isJWTValid() {
     const token = localStorage.getItem("token");
     if (token) {
@@ -50,12 +42,12 @@ theme: "light",
     if (!isJWTValid()) {
       let val = localStorage.getItem("token");
       if (val !== null) {
-        //toast.error("Session expired! Please Login");
-       toastfailure();
+       
+          showToast('Session Expired! Please Login', 'error');
       }
       if (val === null) {
-       // toast.success("Please Login");
-       toastsuccess();
+     
+        showToast('Please Login!', 'success');
       }
     }
   }, []);

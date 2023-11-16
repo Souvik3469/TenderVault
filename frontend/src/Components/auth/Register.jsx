@@ -7,32 +7,24 @@ import { registerUser } from "../../api";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router";
 import Loading from "../Loading";
-import register1 from "../../assets/register.png"
+import register1 from "../../assets/register1.jpg"
 function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [button, setbutton] = useState(false);
   const [apiError, setApiError] = useState(null);
-     const toastregistersuccess = () => toast.success('Register is successfull', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastregisterfailure = () => toast.error('Some Error occured during register', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+     const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
   const {
     reset,
     register,
@@ -58,7 +50,7 @@ theme: "light",
     try {
       const { data } = await registerUser(formData);
       // toast.success(data.message, { id: data.message });
-      toastregistersuccess();
+      showToast('User Registered Successfully', 'success');
       navigate("/login");
       reset();
       setApiError(null);
@@ -66,7 +58,7 @@ theme: "light",
       setValue("email", "");
       setValue("picture", null);
     } catch (err) {
-      toastregisterfailure();
+      showToast('Some Error Occured during Register', 'error');
       setApiError(err.response.data.message);
       setbutton(false);
     }
@@ -81,9 +73,11 @@ theme: "light",
       </div>
       <div className="flex lg:w-1/2  sm:w-full h-screen justify-center p-10">
         <div className="flex flex-col ">
-          <h1 className="text-center font-bold text-3xl m-5 text-green-600 border-red-500">
-            TenderVault
-          </h1>
+       
+           <div className="p-4 m-4">
+                  <span className='font-mont text-blue-800 text-4xl font-bold'>Tender</span>
+                  <span className='font-mont text-blue-400 text-4xl font-bold'>Vault</span>
+               </div>
           <p className="text-gray-500">New User? </p>
           <h1 className="font-bold text-3xl font-mono">Register</h1>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -106,15 +100,6 @@ theme: "light",
                   {...register("role")}
                 />
               </div>
-              {/* <div className="">
-                <TextField
-                  id="outlined-basic"
-                  label="phonenumber"
-                  variant="outlined"
-                  className="w-full rounded-lg text-white"
-                  {...register("phonenumber")}
-                />
-              </div> */}
               <div className="">
                 <TextField
                   id="outlined-basic"
@@ -157,6 +142,19 @@ theme: "light",
                   <p className="text-red-500 text-sm italic">{apiError}</p>
                 )}
               </div>
+              {/* <div className="">
+                <label htmlFor="document" className="text-white">
+                  Upload Document
+                </label>
+                <input
+                  type="file"
+                  id="document"
+                  name="document"
+                  accept=".pdf,.doc,.docx"
+                  className="w-full rounded-lg text-white"
+                  {...register("document")}
+                />
+              </div> */}
             </div>
             <div className="flex mx-10 p-5">
               <p

@@ -41,55 +41,47 @@ const Home = () => {
  const [selectedRating, setSelectedRating] = useState(0);
  
  const data = GetUserQuery();
- const toastreviewsuccess = () => toast.success('Review Added Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastreviewfailure = () => toast.error('Some Error occured in adding review', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+ const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
 const dummyPriceRanges = [
   {
     id: 1,
-    label: 'Under $100',
+    label: 'Under 1000',
     minPrice: 0,
-    maxPrice: 100,
-  },
-  {
-    id: 2,
-    label: '$100 - $500',
-    minPrice: 100,
-    maxPrice: 500,
-  },
-  {
-    id: 3,
-    label: '$500 - $1000',
-    minPrice: 500,
     maxPrice: 1000,
   },
   {
-    id: 4,
-    label: '$1000 - $1500',
-    minPrice: 1000,
+    id: 2,
+    label: '1001 - 1500',
+    minPrice: 1001,
     maxPrice: 1500,
   },
   {
+    id: 3,
+    label: '1501 - 2000',
+    minPrice: 1501,
+    maxPrice: 2000,
+  },
+  {
+    id: 4,
+    label: '2001 - 2500',
+    minPrice: 2001,
+    maxPrice: 2500,
+  },
+  {
     id: 5,
-    label: 'Over $1500',
-    minPrice: 1500,
+    label: 'Over 2500',
+    minPrice: 2501,
     maxPrice: Infinity,
   },
 ];
@@ -163,13 +155,12 @@ const handlePriceRangeChange = (priceRangeId) => {
 
    const handleSearch =  () => {
     try {
-      //const { data } =  searchTendersQuery(searchTerm);
      
     } catch (error) {
       console.error('Error searching tenders', error);
     }
   };
- console.log("Search1:",searchResults?.data);
+
  
     const filteredTenders1 = searchResults || tenders;
  const filteredTenders = tenders.filter((tender) => {
@@ -204,9 +195,9 @@ const handlePriceRangeChange = (priceRangeId) => {
  const handleReview = async (tenderId) => {
   try {
     await reviewTender(tenderId, selectedRating);
-    toastreviewsuccess();
+    showToast('Tender Reviewed Successfully', 'success');
   } catch (error) {
-    toastreviewfailure();
+    showToast('Some Error occurred while reviewing the tender', 'error');
     console.error('Error reviewing tender', error);
    
   }
@@ -240,7 +231,7 @@ const handlePriceRangeChange = (priceRangeId) => {
                 <p className="text-gray-600 text-sm">{tender.description}</p>
                 <p className="text-gray-400 text-sm mt-2">Company: {tender.companyName}</p>
                 <p className="text-gray-400 text-sm">Category: {tender.category}</p>
-                <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
+                <p className="text-gray-400 text-sm">Cost: {tender.cost} Lakhs</p>
                 <p className="text-gray-400 text-sm">Status: {tender.status}</p>
                <div className="flex items-center mt-2">
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
@@ -299,7 +290,7 @@ const handlePriceRangeChange = (priceRangeId) => {
                 <p className="text-gray-600 text-sm">{tender.description}</p>
                 <p className="text-gray-400 text-sm mt-2">Company: {tender?.companyName}</p>
                 <p className="text-gray-400 text-sm">Category: {tender.category}</p>
-                <p className="text-gray-400 text-sm">Cost: {tender.cost}</p>
+                <p className="text-gray-400 text-sm">Cost: {tender.cost} Lakhs</p>
                 <p className="text-gray-400 text-sm">Status: {tender.status}</p>
                 <div className="flex items-center mt-2">
                 
@@ -445,8 +436,8 @@ theme="light"
                       htmlFor={`category-${index}`}
                       className={`text-base ${
                         selectedCategories.includes(category.toLowerCase())
-                          ? 'text-gray-600'
-                          : 'text-gray-400'
+                          ? 'text-gray-800'
+                          : 'text-gray-800'
                       } font-semibold`}
                     >
                       {category}
@@ -459,7 +450,7 @@ theme="light"
     <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
       <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
         <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Price Ranges
+          Price Ranges (in Lakhs)
         </h1>
       </div>
       <ul>
@@ -478,7 +469,7 @@ theme="light"
                   <label
                     htmlFor={`price-range-${priceRange.id}`}
                     className={`text-base ${
-                      selectedPriceRanges.includes(priceRange.id) ? 'text-gray-600' : 'text-gray-400'
+                      selectedPriceRanges.includes(priceRange.id) ? 'text-gray-800' : 'text-gray-800'
                     } font-semibold`}
                   >
                     {priceRange.label}

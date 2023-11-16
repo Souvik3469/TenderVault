@@ -4,7 +4,8 @@ import { updateTender, tenderdetailsquery } from '../api/tender';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
-  import 'react-toastify/dist/ReactToastify.css';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 // import { toast } from 'react-hot-toast';
 import Loading from './Loading';
@@ -16,41 +17,35 @@ const UpdateTender = () => {
 
   const [tenderName, setTenderName] = useState('');
   const [description, setDescription] = useState('');
-  const [cost, setCost] = useState(0); 
+  const [cost, setCost] = useState(0);
   const [category, setCategory] = useState('');
   const [document, setDocument] = useState(null);
- let navigate = useNavigate();
-  const toastsuccess = () => toast.success('Tender Updated Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastfailure = () => toast.error('Some Error occured in updating tender', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+  const [tenderImage, setTenderImage] = useState(null);
+    const [loadingUpdate, setLoadingUpdate] = useState(false);
+  let navigate = useNavigate();
+  const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
   useEffect(() => {
     if (!isLoading && !isError && tenderDetails) {
       const { title, description, cost, category } = tenderDetails;
       setTenderName(title || '');
       setDescription(description || '');
-      setCost(parseFloat(cost) || 0); 
+      setCost(parseFloat(cost) || 0);
       setCategory(category || '');
     }
   }, [tenderDetails, isLoading, isError]);
 
-  if (isLoading) {
+  if (isLoading||loadingUpdate) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
         <Loading />
@@ -61,35 +56,40 @@ theme: "light",
   if (isError) {
     return <div>Error loading tender details.</div>;
   }
- 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const updatedTender = {
       title: tenderName,
       description,
-      cost: parseFloat(cost), 
+      cost: parseFloat(cost),
       category,
- 
-    };
+      image: tenderImage,
 
+    };
+    try {
+      setLoadingUpdate(true);
     const result = await updateTender(tenderId, updatedTender);
 
     if (result.success) {
       setTenderName('');
       setDescription('');
-      setCost(0); 
+      setCost(0);
       setCategory('');
       setDocument(null);
-
-      //toast.success("Tender updated successfully");
-      toastsuccess();
+      setTenderImage(null);
+      showToast('Tender Updated Successfully', 'success');
       navigate('/myprofile');
-    } else {
+    } 
+    } catch (error) {
       console.error(result.message);
-      //toast.error(result.message);
-      toastfailure();
+      showToast('Some Error occurred in updating tender', 'error');
     }
+    finally{
+      setLoadingUpdate(false);
+    }
+
   };
 
   return (
@@ -155,6 +155,18 @@ theme: "light",
               />
             </div>
             <div className="mb-4">
+              <label htmlFor="image" className="block text-gray-700 text-sm font-bold">
+                Tender Image
+              </label>
+              <input
+                type="file"
+                id="image"
+                accept="image/*"
+                onChange={(e) => setTenderImage(e.target.files[0])}
+                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="mb-4">
               <label htmlFor="document" className="block text-gray-700 text-sm font-bold">
                 Upload Document
               </label>
@@ -175,18 +187,18 @@ theme: "light",
           </form>
         </div>
       </div>
-       <ToastContainer
-position="top-center"
-autoClose={5000}
-hideProgressBar
-newestOnTop={false}
-closeOnClick
-rtl={false}
-pauseOnFocusLoss
-draggable
-pauseOnHover
-theme="light"
-/>
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 };
