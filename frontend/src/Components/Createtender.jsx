@@ -3,6 +3,8 @@ import { createTender } from "../api/tender";
 import Navbar from './Navbar';
 import { ToastContainer, toast } from 'react-toastify';
   import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
+import Loading from './Loading';
 
 const Createtender = () => {
   const [tenderInfo, setTenderInfo] = useState({
@@ -11,26 +13,27 @@ const Createtender = () => {
     cost: 0.0, 
     category: '',
   });
-   const toastsuccess = () => toast.success('Tender Listed Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastfailure = () => toast.error('Some Error occured in listing tender', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+   const [loadingCreate, setLoadingCreate] = useState(false);
+ const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
+   let navigate = useNavigate();
+  if(loadingCreate){
+     return (
+      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
+        <Loading />
+      </div>
+     )
+  }
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     const floatValue = name === 'cost' ? parseFloat(value) : value;
@@ -43,22 +46,27 @@ theme: "light",
   const createTenderHandler = async (event) => {
     event.preventDefault();
     try {
+      setLoadingCreate(true); 
       const response = await createTender(tenderInfo);
 
       if (response.success) {
-toastsuccess();
+   showToast('Tender Listed Successfully', 'success');
         setTenderInfo({
           title: '',
           description: '',
           cost: 0.0,
           category: '',
         });
+       navigate('/home');
       } else {
-        toastfailure();
+        showToast('Some Error Occured in Listing Tender', 'error');
       }
     } catch (error) {
       console.error('Error creating tender:', error);
-      toastfailure();
+       showToast('Some Error Occured in Listing Tender', 'error');
+    }
+    finally{
+      setLoadingCreate(false); 
     }
   };
 
@@ -127,6 +135,18 @@ toastsuccess();
               required
             />
           </div>
+          <div className="mb-4">
+              <label htmlFor="image" className="block text-gray-700 text-sm font-bold">
+                Tender Image
+              </label>
+              <input
+                type="file"
+                id="image"
+                accept="image/*"
+                onChange={(e) => setTenderImage(e.target.files[0])}
+                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
+              />
+            </div>
             <div className="mb-4">
             <label htmlFor="document" className="block text-gray-700 text-sm font-bold">
               Upload Document

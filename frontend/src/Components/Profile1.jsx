@@ -30,15 +30,29 @@ const Profile1 = () => {
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
+   const [loadingDelete, setLoadingDelete] = useState('');
  const { data: searchResults, isLoading: searchResultsLoading, isError: searchResultsError } = searchTendersQuery(searchTerm);
   const { data: userProfile, isLoading: profileLoading, isError: profileError } = GetUserQuery();
 
  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
-  const { data: allTenders, isLoading: allTendersLoading, isError: allTendersError } = getalltenderquery();
+  const { data: allTenders, isLoading: allTendersLoading, isError: allTendersError,  refetch: refetchAllTenders} = getalltenderquery();
 
   
-  const { data: userTenders, isLoading: userTendersLoading, isError: userTendersError } = getMyTendersQuery();
-   if (profileLoading || allTendersLoading || userTendersLoading||categoriesLoading) {
+  const { data: userTenders, isLoading: userTendersLoading, isError: userTendersError, refetch: refetchUserTenders} = getMyTendersQuery();
+ const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
+
+   if (profileLoading || allTendersLoading || userTendersLoading||categoriesLoading||loadingDelete) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
         <Loading />
@@ -52,32 +66,32 @@ const Profile1 = () => {
 const dummyPriceRanges = [
   {
     id: 1,
-    label: 'Under $100',
+    label: 'Under 1000',
     minPrice: 0,
-    maxPrice: 100,
-  },
-  {
-    id: 2,
-    label: '$100 - $500',
-    minPrice: 100,
-    maxPrice: 500,
-  },
-  {
-    id: 3,
-    label: '$500 - $1000',
-    minPrice: 500,
     maxPrice: 1000,
   },
   {
-    id: 4,
-    label: '$1000 - $1500',
-    minPrice: 1000,
+    id: 2,
+    label: '1001 - 1500',
+    minPrice: 1001,
     maxPrice: 1500,
   },
   {
+    id: 3,
+    label: '1501 - 2000',
+    minPrice: 1501,
+    maxPrice: 2000,
+  },
+  {
+    id: 4,
+    label: '2001 - 2500',
+    minPrice: 2001,
+    maxPrice: 2500,
+  },
+  {
     id: 5,
-    label: 'Over $1500',
-    minPrice: 1500,
+    label: 'Over 2500',
+    minPrice: 2501,
     maxPrice: Infinity,
   },
 ];
@@ -105,26 +119,25 @@ const renderStarRating = (rating) => {
   return stars;
 };
 
-  console.log("Usertenders",userTenders);
+
   const handleSearch =  () => {
     try {
-      //const { data } =  searchTendersQuery(searchTerm);
      
     } catch (error) {
       console.error('Error searching tenders', error);
     }
   };
- console.log("Search1:",searchResults?.data);
+
 
  const filteredTenders = userTenders?.filter((tender) => {
-  const categoryName = tender.category.toLowerCase();
+  const categoryName = tender?.category?.toLowerCase();
 
-  const isCategorySelected = selectedCategories.length === 0 || selectedCategories.includes(categoryName);
+  const isCategorySelected = selectedCategories?.length === 0 || selectedCategories?.includes(categoryName);
 
   const isPriceInRange =
-    selectedPriceRanges.length === 0 ||
-    selectedPriceRanges.some((priceRangeId) => {
-      const range = dummyPriceRanges.find((r) => r.id === priceRangeId);
+    selectedPriceRanges?.length === 0 ||
+    selectedPriceRanges?.some((priceRangeId) => {
+      const range = dummyPriceRanges?.find((r) => r.id === priceRangeId);
       return range && tender.cost >= range.minPrice && tender.cost <= range.maxPrice;
     });
 
@@ -136,14 +149,14 @@ const renderStarRating = (rating) => {
 });
 
  const allfilteredTenders = allTenders?.filter((tender) => {
-  const categoryName = tender.category.toLowerCase();
+  const categoryName = tender?.category?.toLowerCase();
 
-  const isCategorySelected = selectedCategories.length === 0 || selectedCategories.includes(categoryName);
+  const isCategorySelected = selectedCategories?.length === 0 || selectedCategories?.includes(categoryName);
 
   const isPriceInRange =
-    selectedPriceRanges.length === 0 ||
-    selectedPriceRanges.some((priceRangeId) => {
-      const range = dummyPriceRanges.find((r) => r.id === priceRangeId);
+    selectedPriceRanges?.length === 0 ||
+    selectedPriceRanges?.some((priceRangeId) => {
+      const range = dummyPriceRanges?.find((r) => r.id === priceRangeId);
       return range && tender.cost >= range.minPrice && tender.cost <= range.maxPrice;
     });
 
@@ -157,35 +170,38 @@ const renderStarRating = (rating) => {
  const handleCategoryChange = (categoryId) => {
     const categoryName = categories[categoryId].toLowerCase();
 
-    if (selectedCategories.includes(categoryName)) {
-      setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
+    if (selectedCategories?.includes(categoryName)) {
+      setSelectedCategories(selectedCategories?.filter((name) => name !== categoryName));
     } else {
       setSelectedCategories([...selectedCategories, categoryName]);
     }
   };
   const handleDeleteTender = async (tenderId) => {
+    try {
+      setLoadingDelete(true);
     const result = await deleteTender(tenderId);
 
     if (result.success) {
     
       console.log(result.message);
 
-    
-      toast.success(result.message);
-    } else {
-     
+    refetchUserTenders();
+    refetchAllTenders();
+   showToast('Tender Deleted Successfully', 'success');
+     closeConfirmation();
+    } 
+  }catch (error) {
       console.error(result.message);
-
-     
-      toast.error(result.message);
+        showToast('Some Error Occured in Deleting Tender', 'error');
     }
-
-
-    closeConfirmation();
+    finally{
+      setLoadingDelete(false);
+    }
+   
   };
 
   const openConfirmation = (tenderId) => {
-    console.log("DEl button");
+  
     setTenderToDelete(tenderId);
     setConfirmationOpen(true);
   };
@@ -198,7 +214,7 @@ const renderStarRating = (rating) => {
   
  const renderTenders = () => {
     if (searchTerm !== '' && searchResults) {
-      if (searchResults.length === 0) {
+      if (searchResults?.length === 0) {
         return <div className="text-gray-600">No matches found.</div>;
       }
       return (
@@ -271,7 +287,7 @@ const renderStarRating = (rating) => {
         </div>
       );
     } else {
-      if(userProfile.role=="company"){
+      if(userProfile?.role=="company"){
       if (filteredTenders?.length === 0) {
         return <p className="text-gray-600">No tenders found.</p>;
       }
@@ -384,7 +400,7 @@ theme="light"
         </div>
       );
     }
-    else if(userProfile.role==="vendor"){
+    else if(userProfile?.role==="vendor"){
         if (allfilteredTenders?.length === 0) {
         return <p className="text-gray-600">No tenders found.</p>;
       }
@@ -506,7 +522,7 @@ theme="light"
                </Link>
                
        {
-  userProfile && userProfile.role === "company" && (
+  userProfile && userProfile?.role === "company" && (
     <Link to="/createtender">
       <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">
         Create
@@ -541,7 +557,7 @@ theme="light"
             <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
               <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
                 <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-                  Categories
+                  Registered Categories
                 </h1>
               </div>
               <ul>
@@ -561,8 +577,8 @@ theme="light"
                       htmlFor={`category-${index}`}
                       className={`text-base ${
                         selectedCategories.includes(category.toLowerCase())
-                          ? 'text-gray-600'
-                          : 'text-gray-400'
+                          ? 'text-gray-800'
+                          : 'text-gray-800'
                       } font-semibold`}
                     >
                       {category}
@@ -575,13 +591,13 @@ theme="light"
     <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
       <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
         <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Price Ranges
+          Price Ranges (in Lakhs)
         </h1>
       </div>
       <ul>
-       {dummyPriceRanges.map((priceRange) => (
+       {dummyPriceRanges?.map((priceRange) => (
                 <div
-                  className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 p-1 group cursor-pointer hover:shadow-lg m-auto"
+                  className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 hover:text-gray-100 p-1 group cursor-pointer hover:shadow-lg m-auto"
                   key={priceRange.id}
                 >
                   <input
@@ -594,7 +610,7 @@ theme="light"
                   <label
                     htmlFor={`price-range-${priceRange.id}`}
                     className={`text-base ${
-                      selectedPriceRanges.includes(priceRange.id) ? 'text-gray-600' : 'text-gray-400'
+                      selectedPriceRanges.includes(priceRange.id) ? 'text-gray-800' : 'text-gray-800 '
                     } font-semibold`}
                   >
                     {priceRange.label}

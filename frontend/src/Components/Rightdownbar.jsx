@@ -25,7 +25,7 @@ const Rightdownbar = () => {
         </h1>
       </div>
       <ul>
-        {vendors.map((vendor) => {
+        {vendors?.map((vendor) => {
           return (
             <div
               className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-500 p-1 group cursor-pointer hover:shadow-lg m-auto"

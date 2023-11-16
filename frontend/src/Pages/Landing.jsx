@@ -19,6 +19,7 @@ import img1 from "../img/water.jpg"
 import img2 from "../img/cloud.png"
 import img3 from "../img/hotel.jpg"
 import img4 from "../img/solar.jpg"
+import { Link as ScrollLink, Element } from 'react-scroll';
 import { GetUserQuery } from "../../src/api/user";
 
 import {
@@ -95,10 +96,15 @@ const data = GetUserQuery();
            
             </select>
             </span>
-              
+     <ScrollLink to="aboutus" smooth={true} duration={500}>       
 <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">About us</span>
+</ScrollLink>  
+<ScrollLink to="explore" smooth={true} duration={500}>  
 <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Explore</span>
+</ScrollLink>  
+<ScrollLink to="stories" smooth={true} duration={500}> 
 <span className="font-mont text-gray-50 text-lg font-bold mr-10 hover:text-blue-300 hover:cursor-pointer">Stories</span>
+</ScrollLink>  
              {
                 user?(
                     <div>
@@ -182,6 +188,7 @@ const data = GetUserQuery();
             </div >
         </div>
         {/* <Featured /> */}
+       <Element name="aboutus">
         <section className="text-gray-600 body-font overflow-hidden">
             <div className="container py-24 flex items-center mx-auto">
                 <div className="flex flex-wrap">
@@ -190,16 +197,14 @@ const data = GetUserQuery();
                         <h2 className="text-5xl font-bold text-blue-700 mb-5">{t("a1")}</h2>
                         <h1 className="text-4xl	text-gray-900 font-normal mb-4"> {t("a2")}</h1>
                         <p className="leading-relaxed text-lg">{t("a3")} </p>
-                        {/* <div className="flex mt-6 mb-4">
-                            <img alt='icon' className='pr-2' src={icon2} />
-                            <button className="flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded">Watch Now</button>
-
-                        </div> */}
+                       
                     </div>
                 </div>
             </div>
         </section>
+        </Element>
         {/* <Discover /> */}
+        <Element name="explore">
     <section className="text-gray-600 body-font" >
             <div className="container px-5 py-24 mx-auto">
                 <h2 className='text-2xl font-bold text-blue-700 flex justify-center'>{t("a4")}</h2>
@@ -228,9 +233,10 @@ const data = GetUserQuery();
                 </div>
             </div>
         </section >
+        </Element>
    
         {/* <Blog /> */}
-
+                          <Element name="stories">
          <section className="text-gray-600 mt-20 lg:mb-20 mb-0 body-font" >
             <h2 className="flex justify-center text-lg font-bold text-blue-700">{t("a11")}</h2>
             <h1 className="flex justify-center text-4xl text-gray-900 font-normal mb-2 lg:mb-7">{t("a12")}</h1>
@@ -280,8 +286,37 @@ const data = GetUserQuery();
                 </div>
             </div>
         </section >
-
-        <Footer />
+</Element>
+        {/* <Footer /> */}
+         <footer className="font-mont text-gray-50 bg-gray-900">
+            <div className="container px-5 py-6 mx-auto flex items-center sm:flex-row flex-col">
+                <p className="text-sm text-gray-50 sm:ml-6 sm:mt-0 mt-4">© 2023, TenderVault — All Rights Reserved.
+                </p>
+                <span className="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start">
+                   <Link to="/home">
+                        Home
+                   </Link>
+                   <ScrollLink to="aboutus" smooth={true} duration={500}> 
+                    <span className="ml-3 text-gray-50 hover:cursor-pointer">
+                        About Us
+                    </span>
+                    </ScrollLink>
+                      <ScrollLink to="explore" smooth={true} duration={500}> 
+                    <span className="ml-3 text-gray-50 hover:cursor-pointer">
+                        Explore
+                    </span>
+                    </ScrollLink>
+                       <ScrollLink to="stories" smooth={true} duration={500}> 
+                    <span className="ml-3 text-gray-50 hover:cursor-pointer">
+                        Stories
+                    </span>
+                    </ScrollLink>
+                      <a href='/' className="ml-3 text-gray-50">
+                        Contact Us
+                    </a>
+                </span>
+            </div>
+        </footer>
       </div>
     </>
     

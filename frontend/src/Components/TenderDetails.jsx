@@ -20,6 +20,10 @@ const TenderDetails = () => {
   const [bidToDelete, setBidToDelete] = useState(null);
   const [bidToAccept, setBidToAccept] = useState(null);
   const [bidToReject, setBidToReject] = useState(null);
+  const [loadingAdd, setLoadingAdd] = useState(false);
+  const [loadingAccept, setLoadingAccept] = useState(false);
+  const [loadingReject, setLoadingReject] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
    const [shouldRefetch, setShouldRefetch] = useState(false); 
   const { data: user, isLoading: userLoading, isError: userError } = GetUserQuery();
  
@@ -42,98 +46,22 @@ const TenderDetails = () => {
       Promise.all([refetchTenderDetails(), refetchBids()]).then(() => setShouldRefetch(false));
     }
   }, [refetchTenderDetails, refetchBids, shouldRefetch]);
-   const toastamountfailure = () => toast.error('Bid amount should be more than cost of tender', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-  const toastbidaddsuccess = () => toast.success('Bid Listed Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastbidaddfailure = () => toast.error('Some Error occured in listing bid', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
- const toastbidacceptsuccess = () => toast.success('Bid Accepted Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastbidacceptfailure = () => toast.error('Some Error occured in accepting bid', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
- const toastbidrejectsuccess = () => toast.success('Bid Rejected Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastbidrejectfailure = () => toast.error('Some Error occured in rejecting bid', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
- const toastbiddeletsuccess = () => toast.success('Bid Deleted Succesfully', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastbiddeletefailure = () => toast.error('Some Error occured in deleting bid', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
 
-  if (userLoading || tenderDetailsLoading || bidsLoading) {
+  const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
+
+
+  if (loadingAdd||shouldRefetch||loadingAccept||loadingReject||loadingDelete ) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
         <Loading />
@@ -147,18 +75,26 @@ theme: "light",
   if (tenderDetailsError) {
     return <div>Error loading tenderdetails.</div>;
   }
-
+if (userLoading || tenderDetailsLoading || bidsLoading) {
+    return (
+      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
+        <Loading />
+      </div>
+    );
+  }
   const handleBid = async () => {
     try {
+       setLoadingAdd(true); 
       const bidAmountFloat = parseFloat(bidAmount);
 
       if (isNaN(bidAmountFloat)) {
-        console.error('Invalid bid amount:', bidAmount);
-        toast.error('Invalid bid amount:');
+      
+         showToast('Invalid bid amount:', 'error');
         return;
       }
       if(bidAmountFloat<tenderDetails.cost){
-        toastamountfailure();
+      
+        showToast('Bid amount should be more than the cost of the tender', 'error');
        console.error('Bid amount should be more than cost of tender', bidAmount);
         return;
       }
@@ -169,12 +105,16 @@ theme: "light",
       
       setIsBidding(false);
       setBidAmount(0);
-      toastbidaddsuccess();
+
+     showToast('Bid Listed Successfully', 'success');
         setShouldRefetch(true);
     } catch (error) {
       console.error('Error creating bid:', error);
-        toastbidaddfailure();
-  
+       showToast('Some Error occurred in listing bid', 'error');
+      
+    }
+     finally {
+      setLoadingAdd(false); 
     }
   };
 
@@ -219,16 +159,19 @@ theme: "light",
   const handleConfirmDelete = async () => {
     if (bidToDelete) {
       try {
-        
+         setLoadingDelete(true); 
         await deletebid(bidToDelete);
 
-        toastbiddeletsuccess();
+        showToast('Bid deleted successfully', 'success');
          setShouldRefetch(true);
 
       } catch (error) {
         console.error('Error deleting bid:', error);
-     toastbiddeletefailure();
-
+ 
+         showToast('Some Error occurred in deleting bid', 'error');
+      }
+      finally{
+        setLoadingDelete(false);
       }
     }
 
@@ -240,16 +183,19 @@ theme: "light",
   const handleConfirmAccept = async () => {
     if (bidToAccept) {
       try {
-       
+        setLoadingAccept(true); 
         await acceptBid(bidToAccept);
 
-toastbidacceptsuccess();
+   showToast('Bid accepted successfully', 'success');
   setShouldRefetch(true);
   
       } catch (error) {
         console.error('Error accepting bid:', error);
-        toastbidacceptfailure();
    
+         showToast('Some Error occurred in accepting bid', 'error');
+      }
+      finally{
+         setLoadingAccept(false); 
       }
     }
 
@@ -261,17 +207,20 @@ toastbidacceptsuccess();
   const handleConfirmReject = async () => {
     if (bidToReject) {
       try {
-      
+       setLoadingReject(true); 
         await rejectBid(bidToReject);
 
+ showToast('Bid rejected successfully', 'success');
 
-        toastbidrejectsuccess();
           setShouldRefetch(true);
 
       } catch (error) {
         console.error('Error rejecting bid:', error);
-         toastbidrejectfailure();
-  
+
+            showToast('Some Error occurred in accepting bid', 'error');
+      }
+      finally{
+         setLoadingReject(false); 
       }
     }
 
@@ -279,7 +228,7 @@ toastbidacceptsuccess();
     setBidToReject(null);
     setShowRejectConfirmation(false);
   };
- console.log("Tenderdetailsname:",tenderDetails);
+ 
   return (
     <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide pt-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full md:max-w-4xl mx-4 md:mx-auto">
@@ -297,7 +246,7 @@ toastbidacceptsuccess();
         </div>
         <div className="mt-4 text-center">
           <p className="text-gray-700">{tenderDetails.category}</p>
-          <p className="text-2xl text-blue-500">${tenderDetails.cost}</p>
+          <p className="text-2xl text-blue-500">{tenderDetails.cost} Lakhs</p>
           <p className="text-gray-600">Status: {tenderDetails.status}</p>
         </div>
       </div>
@@ -319,13 +268,19 @@ toastbidacceptsuccess();
             </button>
           </div>
         ) : (
+          
           <div className="flex justify-center">
-            <button
+            {
+              user.role==='vendor'&&(
+                   <button
               onClick={() => setIsBidding(true)}
               className="bg-green-500 text-white py-2 px-6 rounded-lg hover-bg-green-600"
             >
               Bid
             </button>
+              )
+            }
+           
           </div>
         )}
       </div>
@@ -405,7 +360,9 @@ toastbidacceptsuccess();
     </div>
   ))
 ) : (
+  <div className='flex items-center justify-center'>
   <p className="text-gray-600">No bids yet.</p>
+  </div>
 )}
       </div>
 

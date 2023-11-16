@@ -20,7 +20,7 @@ import {
 } from "react-icons/ai";
 import { useNavigate } from "react-router";
 import Loading from "../Loading";
-import login1 from "../../assets/login.png"
+import login1 from "../../assets/login2.jpg"
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -46,26 +46,18 @@ function Login() {
       confirmPassword: "",
     },
   });
-     const toastloginsuccess = () => toast.success('Login is successful', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
-   const toastloginfailure = () => toast.error('Some Error occured during login', {
-position: "top-center",
-autoClose: 5000,
-hideProgressBar: true,
-closeOnClick: true,
-pauseOnHover: true,
-draggable: true,
-progress: undefined,
-theme: "light",
-});
+   const showToast = (message, type = 'error') => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
   const onSubmit = async (formData) => {
     setbutton(true);
     try {
@@ -75,17 +67,18 @@ theme: "light",
       if (response.status === 200) {
         localStorage.setItem("token", data.message.accessToken);
        // toast.success("Login Successful", { id: data.message });
-       toastloginsuccess();
+       showToast('Login Successful', 'success');
         navigate("/");
       }
       reset();
+      
       setApiError(null);
       setValue("email", "");
       setShowPassword(false);
     } catch (err) {
       setApiError("please verify your credentials");
-      //toast.error("Invalid Credentials");
-       toastloginfailure();
+       showToast('Invalid Credentials', 'error');
+       
       setbutton(false);
     }
     reset();
@@ -102,9 +95,10 @@ theme: "light",
       </div>
       <div className="flex lg:w-1/2  sm:w-full  justify-center p-16">
         <div className="flex flex-col gap-4">
-          <h1 className="text-center font-bold text-3xl m-5 text-green-600 border-red-500">
-            TenderVault
-          </h1>
+          <div className="p-4 m-4">
+                  <span className='font-mont text-blue-800 text-4xl font-bold'>Tender</span>
+                  <span className='font-mont text-blue-400 text-4xl font-bold'>Vault</span>
+               </div>
 
           <p className="text-gray-500 ">Existing User? </p>
           <h1 className="font-bold text-3xl font-mono">Login</h1>
