@@ -315,7 +315,7 @@ if (userLoading || tenderDetailsLoading || bidsLoading) {
       <div>
         <p className="text-gray-700">Reference Id: {bid?.id}</p>
         <p className="text-gray-700">Vendor: {bid?.vendor.name}</p>
-        <p className="text-gray-500">Amount: ${bid.amount}</p>
+        <p className="text-gray-500">Amount: {bid.amount} Lakhs</p>
         <p className="text-gray-500">Status: {bid.status}</p>
         <p className="text-gray-500">Date: {bid.updatedAt}</p>
       </div>
