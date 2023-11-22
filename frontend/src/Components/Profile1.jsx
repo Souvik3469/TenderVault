@@ -245,24 +245,7 @@ const renderStarRating = (rating) => {
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
               </div>
-                {/* <div className="mt-4">
-                  {
-  userProfile && userProfile.role === "admin" && (
-   <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button>
-  )
-}
-                  
-                  <Link to={`/tender/${tender.id}`}>
-                    <button className="bg-gray-400 text-white rounded-md px-3 py-1">
-                      Details
-                    </button>
-                  </Link>
-                </div> */}
+                
                  <div className="mt-4 flex justify-center items-center">
               <Link to={`/updatetender/${tender.id}`}>
                 <button className="bg-blue-500 text-white rounded-md px-2 py-1 mr-2">
@@ -321,24 +304,7 @@ const renderStarRating = (rating) => {
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
               </div>
           
-                {/* <div className="mt-4">
-                     {
-  userProfile&& userProfile.role === "admin" && (
-   <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button>
-  )
-}
-                  
-                  <Link to={`/tender/${tender.id}`}>
-                    <button className="bg-gray-400 text-white rounded-md px-3 py-1">
-                      Details
-                    </button>
-                  </Link>
-                </div> */}
+             
                       <div className="mt-4 flex justify-center items-center">
               <Link to={`/updatetender/${tender.id}`}>
                 <button className="bg-blue-500 text-white rounded-md px-2 py-1 mr-2">
@@ -435,24 +401,7 @@ theme="light"
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
               </div>
           
-                {/* <div className="mt-4">
-                     {
-  userProfile&& userProfile.role === "admin" && (
-   <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button>
-  )
-}
-                  
-                  <Link to={`/tender/${tender.id}`}>
-                    <button className="bg-gray-400 text-white rounded-md px-3 py-1">
-                      Details
-                    </button>
-                  </Link>
-                </div> */}
+             
                       <div className="mt-4 flex justify-center items-center">
               
                 <Link to={`/tender/${tender.id}`}>
@@ -555,7 +504,7 @@ theme="light"
         <div className="flex flex-row h-[90vh]">
           <div className="hidden lg:grid justify-items-center w-[43%] bg-gray-200">
             <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
-              <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
+              <div className="sticky top-0 z-0 bg-blue-700 p-1 h-10 w-full">
                 <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
                   Registered Categories
                 </h1>
@@ -589,7 +538,7 @@ theme="light"
             </div>
             {/* <Leftdownbar /> */}
     <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide">
-      <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
+      <div className="sticky top-0 z-0 bg-blue-700 p-1 h-10 w-full">
         <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
           Price Ranges (in Lakhs)
         </h1>
