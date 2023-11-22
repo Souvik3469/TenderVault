@@ -33,14 +33,19 @@ const Home = () => {
   const [showSoldTenders, setShowSoldTenders] = useState(false);
     const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [rating, setRating] = useState(0);
+  const [loadingReview, setLoadingReview] = useState(false);
    const [user, setuser] = useState();
+     const [shouldRefetch, setShouldRefetch] = useState(false);
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = getallcategoryquery();
-  const { data: tenders, isLoading: tendersLoading, isError: tendersError } = getalltenderquery();
+  const { data: tenders, isLoading: tendersLoading, isError: tendersError 
+  ,refetch: refetchTenders,} = getalltenderquery( {
+    enabled: shouldRefetch
+  });
   const { data: searchResults, isLoading: searchResultsLoading, isError: searchResultsError } = searchTendersQuery(searchTerm);
- const [selectedRating, setSelectedRating] = useState(0);
- 
+
+
  const data = GetUserQuery();
+
  const showToast = (message, type = 'error') => {
     toast[type](message, {
       position: "top-center",
@@ -96,54 +101,83 @@ const handlePriceRangeChange = (priceRangeId) => {
  useEffect(() => {
     setuser(data?.data);
   }, [data.data]);
-  const handleStarClick = (newRating) => {
-    setSelectedRating(newRating);
-  };
-
- const renderStarRating = (rating) => {
-  const stars = [];
-  for (let i = 0; i < 5; i++) {
-    stars.push(
-      <span
-        key={i}
-        className={`text-yellow-400 ${
-          i < rating ? 'text-opacity-100' : 'text-opacity-40'
-        } text-lg mr-1`}
-      >
-        ★
-      </span>
-    );
-  }
-  return stars;
-};
-
-
-  // const renderStarRating = (tender) => {
-  //   return (
-  //     <div className="flex items-center mt-2">
-  //       {[1, 2, 3, 4, 5].map((rating) => (
-  //         <span
-  //           key={rating}
-  //           onClick={() => handleStarClick(rating)}
-  //           className={`text-yellow-400 ${
-  //             rating <= selectedRating ? 'text-opacity-100' : 'text-opacity-40'
-  //           } text-lg mr-1 cursor-pointer`}
-  //         >
-  //           ★
-  //         </span>
-  //      ) )}
-  //       <div className="text-gray-400 text-sm">(Rating: {selectedRating})</div>
-  //     </div>
-  //   );
-  // };
-
-  if (categoriesLoading || tendersLoading) {
+  useEffect(() => {
+   
+    if (shouldRefetch) {
+      Promise.all([refetchTenders()]).then(() => setShouldRefetch(false));
+    }
+  }, [refetchTenders, shouldRefetch]);
+if (loadingReview) {
     return (
       <div style={{ minHeight: '800px', minWidth: '1200px' }}>
         <Loading />
       </div>
     );
   }
+ if (categoriesLoading || tendersLoading) {
+    return (
+      <div style={{ minHeight: '800px', minWidth: '1200px' }}>
+        <Loading />
+      </div>
+    );
+  }
+const renderStarRating = (rating) => {
+  const stars = [];
+
+  for (let i = 1; i <= 5; i++) {
+    const starClass = i <= rating ? 'text-yellow-500' : 'text-yellow-200';
+
+    stars.push(
+      <span
+        key={i}
+        className={`text-2xl mr-1 ${starClass}`}
+      
+      >
+        ★
+      </span>
+    );
+  }
+
+  return stars;
+};
+  const StarRating = ({ tenderId }) => {
+    const [selectedRating, setSelectedRating] = useState(0);
+
+    const handleStarClick = (rating) => {
+      setSelectedRating(rating);
+    };
+
+    const handleReviewClick = () => {
+      handleReview(tenderId, selectedRating);
+    };
+    return (
+     <div className="flex flex-col items-center py-2">
+      <div className="mb-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            className={`text-2xl ${
+              star <= selectedRating ? 'text-yellow-500' : 'text-gray-300'
+            } focus:outline-none`}
+            onClick={() => handleStarClick(star)}
+          >
+            ★
+          </button>
+        ))}
+        </div>
+        <button
+          onClick={handleReviewClick}
+         className="bg-blue-500 text-white py-1 px-3 rounded-lg hover:bg-blue-600"
+        >
+          Review
+        </button>
+      </div>
+    );
+  };
+
+  
+
+ 
 
   if (categoriesError) {
     return <div>Error loading categories.</div>;
@@ -192,16 +226,30 @@ const handlePriceRangeChange = (priceRangeId) => {
     }
   };
 
- const handleReview = async (tenderId) => {
-  try {
-    await reviewTender(tenderId, selectedRating);
-    showToast('Tender Reviewed Successfully', 'success');
-  } catch (error) {
-    showToast('Some Error occurred while reviewing the tender', 'error');
-    console.error('Error reviewing tender', error);
-   
-  }
-};
+
+  const handleReview = async (tenderId, rating) => {
+    try {
+    setLoadingReview(true);
+ 
+      const updatedTender = {
+      rating:rating
+
+    };
+await reviewTender(tenderId, updatedTender);
+     setShouldRefetch(true);
+
+      showToast('Tender Reviewed Successfully', 'success');
+    
+    } catch (error) {
+      showToast('Some Error occurred while reviewing the tender', 'error');
+      console.error('Error reviewing tender', error);
+    }  finally{
+      setLoadingReview(false);
+  
+    }
+
+    
+  };
 
  
 
@@ -236,30 +284,20 @@ const handlePriceRangeChange = (priceRangeId) => {
                <div className="flex items-center mt-2">
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
+                 
               </div>
-                <div className="mt-4">
-                  {
-  user && user.role === "admin" && (
-   <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button>
-  )
-}
-                  {/* <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button> */}
-                  <Link to={`/tender/${tender.id}`}>
-                    <button className="bg-green-500 text-white rounded-md px-3 py-1">
-                      Details
-                    </button>
-                  </Link>
-                </div>
+                  <div className="mt-4 flex flex-col items-center">
+  <Link to={`/tender/${tender.id}`}>
+    <button className="bg-green-500 text-white rounded-md px-3 py-1 mb-2">
+      Details
+    </button>
+  </Link>
+  {user && user.role === "admin" && (
+    
+     <StarRating tenderId={tender.id} />
+     
+  )}
+</div>
               </div>
             </div>
           ))}
@@ -296,31 +334,22 @@ const handlePriceRangeChange = (priceRangeId) => {
                 
                 <div className="mr-2">{renderStarRating(tender.rating)}</div>
                 <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
+
+                
               </div>
-          
-                <div className="mt-4">
-                     {
-  user && user.role === "admin" && (
-   <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button>
-  )
-}
-                  {/* <button
-                    onClick={() => handleReview(tender.id)}
-                    className="bg-blue-500 text-white rounded-md px-3 py-1 mr-2"
-                  >
-                    Review
-                  </button> */}
-                  <Link to={`/tender/${tender.id}`}>
-                    <button className="bg-green-500 text-white rounded-md px-3 py-1">
-                      Details
-                    </button>
-                  </Link>
-                </div>
+          <div className="mt-4 flex flex-col items-center">
+  <Link to={`/tender/${tender.id}`}>
+    <button className="bg-green-500 text-white rounded-md px-3 py-1 mb-2">
+      Details
+    </button>
+  </Link>
+  {user && user.role === "admin" && (
+    
+     <StarRating tenderId={tender.id} />
+     
+  )}
+</div>
+              
               </div>
             </div>
           ))}
@@ -340,9 +369,7 @@ theme="light"
       );
     }
   };
-  //  useEffect(() => {
-  //   setuser(data?.data);
-  // }, [data.data]);
+
   return (
     <div className="t">
       <div className="">

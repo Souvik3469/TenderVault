@@ -34,7 +34,7 @@ const updateTender = async (tenderId, tenderInfo) => {
   return data;
 };
 const reviewTender = async (tenderId, rating) => {
- const { data } = await AuthAPI().put(`/user/updatetender?id=${tenderId}`, rating);
+ const { data } = await AuthAPI().put(`/user/reviewtender?id=${tenderId}`, rating);
   return data;
 };
 
