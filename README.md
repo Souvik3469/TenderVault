@@ -14,7 +14,7 @@ https://tender-vault-frontend.vercel.app
 - FrontEnd: ReactJs, Vite, Tailwind Css
 - BackEnd: Node Js, Express, Prisma, MongoDB
 
-<!-- 1
+<!-- 11
 ## Installation
 
 To start the project in your local machine
@@ -145,7 +145,7 @@ To run this project, you will need to add the following environment variables to
 - Reviews and rates tenders using a star rating system.
 
 #### Review Tender:
-![Review Tender](https://github.com/Souvik3469/TenderVault/blob/main/frontend/public/assets/reviewtender.png)
+![Review Tender](https://github.com/Souvik3469/TenderVault/blob/main/frontend/public/assets/review.png)
 
 ## User Types:
 ### Vendor:
