@@ -15,7 +15,7 @@ export const loginUser = async (input: LoginInput) => {
   const secret = new TextEncoder().encode(env.USER_ACCESS_SECRET);
   const accessToken = await new SignJWT({ id: user.id })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('30m')
+    .setExpirationTime('7d')
     .sign(secret);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

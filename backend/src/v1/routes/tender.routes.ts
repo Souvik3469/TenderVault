@@ -1,31 +1,55 @@
 import { Router } from 'express';
 import authMiddleware from '../middlewares/auth.middleware';
-import * as tenderController from '../controllers/tender.controller';
+import * as tc from '../controllers/tender.controller';
 import { validate } from '../middlewares/validate.middleware';
-import { CreateTenderDto, UpdateTenderDto, ReviewTenderDto, CreateBidDto } from '../dtos/tender.dto';
+import {
+  CreateTenderDto,
+  UpdateTenderDto,
+  ReviewTenderDto,
+  CreateBidDto,
+  QuestionDto,
+  AnswerDto,
+} from '../dtos/tender.dto';
 
 const router = Router();
 
-// ─── Bid routes with fixed paths FIRST (before /:tenderId catch-all) ─────────
-router.delete('/bids/:bidId', authMiddleware, tenderController.deleteBid);
-router.put('/bids/:bidId/accept', authMiddleware, tenderController.acceptBid);
-router.put('/bids/:bidId/reject', authMiddleware, tenderController.rejectBid);
+// ─── Top-level bid routes (fixed paths BEFORE /:tenderId) ─────────────────────
+router.delete('/bids/:bidId',          authMiddleware, tc.deleteBid);
+router.patch('/bids/:bidId/withdraw',  authMiddleware, tc.withdrawBid);
+router.put('/bids/:bidId/accept',      authMiddleware, tc.acceptBid);
+router.put('/bids/:bidId/reject',      authMiddleware, tc.rejectBid);
 
-// ─── Tender collection routes ─────────────────────────────────────────────────
-router.get('/', authMiddleware, tenderController.getAllTenders);
-router.post('/', authMiddleware, validate(CreateTenderDto), tenderController.createTender);
-router.get('/search', authMiddleware, tenderController.searchTenders);
-router.get('/mine', authMiddleware, tenderController.getMyTenders);
-router.get('/categories', authMiddleware, tenderController.getAllCategories);
+// ─── Tender collection ─────────────────────────────────────────────────────────
+// GET /tenders?page=&limit=&category=&status=
+router.get('/',           authMiddleware, tc.getAllTenders);
+router.post('/',          authMiddleware, validate(CreateTenderDto), tc.createTender);
+// GET /tenders/search?name=&page=&limit=
+router.get('/search',     authMiddleware, tc.searchTenders);
+router.get('/mine',       authMiddleware, tc.getMyTenders);
+router.get('/categories', authMiddleware, tc.getAllCategories);
 
-// ─── Tender item routes ───────────────────────────────────────────────────────
-router.get('/:tenderId', authMiddleware, tenderController.getTenderById);
-router.put('/:tenderId', authMiddleware, validate(UpdateTenderDto), tenderController.updateTender);
-router.delete('/:tenderId', authMiddleware, tenderController.deleteTender);
-router.put('/:tenderId/review', authMiddleware, validate(ReviewTenderDto), tenderController.reviewTender);
+// ─── Tender item ───────────────────────────────────────────────────────────────
+router.get('/:tenderId',         authMiddleware, tc.getTenderById);
+router.put('/:tenderId',         authMiddleware, validate(UpdateTenderDto), tc.updateTender);
+router.delete('/:tenderId',      authMiddleware, tc.deleteTender);
+router.get('/:tenderId/stats',   authMiddleware, tc.getTenderStats);
 
-// ─── Bid routes scoped to a tender ───────────────────────────────────────────
-router.get('/:tenderId/bids', authMiddleware, tenderController.getBidsForTender);
-router.post('/:tenderId/bids', authMiddleware, validate(CreateBidDto), tenderController.createBid);
+// Lifecycle transitions
+router.patch('/:tenderId/publish', authMiddleware, tc.publishTender);
+router.patch('/:tenderId/close',   authMiddleware, tc.closeTender);
+router.patch('/:tenderId/cancel',  authMiddleware, tc.cancelTender);
+
+// Admin review
+router.put('/:tenderId/review',  authMiddleware, validate(ReviewTenderDto), tc.reviewTender);
+
+// ─── Bids scoped to a tender ───────────────────────────────────────────────────
+router.get('/:tenderId/bids',             authMiddleware, tc.getBidsForTender);
+router.post('/:tenderId/bids',            authMiddleware, validate(CreateBidDto), tc.createBid);
+router.get('/:tenderId/bids/:bidId',      authMiddleware, tc.getBidById);
+
+// ─── Q&A scoped to a tender ────────────────────────────────────────────────────
+router.get('/:tenderId/questions',                              authMiddleware, tc.getQuestions);
+router.post('/:tenderId/questions',                             authMiddleware, validate(QuestionDto), tc.askQuestion);
+router.post('/:tenderId/questions/:questionId/answers',         authMiddleware, validate(AnswerDto), tc.answerQuestion);
 
 export default router;
