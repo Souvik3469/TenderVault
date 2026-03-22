@@ -1,4 +1,3 @@
-import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 import { ZodError, z } from "zod";
 import bcrypt from "bcrypt";

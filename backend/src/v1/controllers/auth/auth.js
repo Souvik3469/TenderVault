@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 import { PrismaClient } from "@prisma/client";
 
 import bcrypt from "bcrypt";
@@ -29,7 +29,11 @@ const loginController = {
 
     
 
-      const accessToken = jwt.sign(user.id, process.env.USER_ACCESS_SECRET);
+      const secret = new TextEncoder().encode(process.env.USER_ACCESS_SECRET);
+      const accessToken = await new SignJWT({ id: user.id })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("30m")
+        .sign(secret);
 
       res.cookie("accessToken", accessToken, {
         maxAge: ms("30m"),

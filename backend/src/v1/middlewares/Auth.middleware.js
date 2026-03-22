@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import createError from "http-errors";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { jwtVerify } from "jose";
 import prisma from "../../prisma/index";
 import config from "../config/env.config";
 
@@ -17,10 +17,11 @@ const authMiddleware = async (req, _res, next) => {
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.USER_ACCESS_SECRET);
+    const secret = new TextEncoder().encode(process.env.USER_ACCESS_SECRET);
+    const { payload } = await jwtVerify(token, secret);
     const user = await prisma.user.findUnique({
       where: {
-        id: decoded,
+        id: payload.id,
       },
     });
     if (!user) {
