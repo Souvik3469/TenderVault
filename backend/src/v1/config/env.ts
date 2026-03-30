@@ -9,6 +9,9 @@ const envSchema = z.object({
   PORT: z.string().default('5000'),
   NODE_ENV: z.enum(['development', 'production']).default('development'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
 });
 
 const parsed = envSchema.safeParse(process.env);

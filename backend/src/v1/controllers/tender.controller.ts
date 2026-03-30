@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as tenderService from '../services/tender.service';
+import { AppError } from '../../utils/errors';
 
 export const createTender = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -243,6 +244,17 @@ export const answerQuestion = async (req: Request, res: Response, next: NextFunc
       req.body,
     );
     res.status(201).json({ success: true, message: 'Answer posted.', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const uploadImage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) throw new AppError('No file uploaded', 400);
+    const imageUrl = (req.file as Express.Multer.File & { path: string }).path;
+    res.status(200).json({ success: true, message: 'Image uploaded.', data: { imageUrl } });
   } catch (err) {
     next(err);
   }

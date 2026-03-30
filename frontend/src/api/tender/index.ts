@@ -51,6 +51,15 @@ export const getAllCategories = async (): Promise<ApiResponse<string[]>> => {
   return data;
 };
 
+export const uploadTenderImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient.post<ApiResponse<{ imageUrl: string }>>('/tenders/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.data!.imageUrl;
+};
+
 export const tenderdetails = async (tenderId: string): Promise<ApiResponse<Tender>> => {
   const { data } = await apiClient.get<ApiResponse<Tender>>(`/tenders/${tenderId}`);
   return data;

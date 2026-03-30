@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authMiddleware from '../middlewares/auth.middleware';
 import * as tc from '../controllers/tender.controller';
 import { validate } from '../middlewares/validate.middleware';
+import { uploadSingle } from '../middlewares/upload.middleware';
 import {
   CreateTenderDto,
   UpdateTenderDto,
@@ -18,6 +19,9 @@ router.delete('/bids/:bidId',          authMiddleware, tc.deleteBid);
 router.patch('/bids/:bidId/withdraw',  authMiddleware, tc.withdrawBid);
 router.put('/bids/:bidId/accept',      authMiddleware, tc.acceptBid);
 router.put('/bids/:bidId/reject',      authMiddleware, tc.rejectBid);
+
+// ─── Image upload ──────────────────────────────────────────────────────────────
+router.post('/upload', authMiddleware, uploadSingle, tc.uploadImage);
 
 // ─── Tender collection ─────────────────────────────────────────────────────────
 // GET /tenders?page=&limit=&category=&status=
