@@ -1,47 +1,38 @@
 import React from "react";
+import { RiPriceTag3Line } from "react-icons/ri";
 
-const CategoryFilter = ({
-  categories,
-  selectedCategories,
-  onCategoryChange,
-}) => {
-  return (
-    <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide shadow-lg">
-      <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
-        <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Categories
-        </h1>
-      </div>
-      <ul>
-        {categories.map((category, index) => (
-          <div
-            className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-300 p-1 group cursor-pointer hover:shadow-lg m-auto"
-            key={index}
-          >
-            <input
-              type="checkbox"
-              id={`category-${index}`}
-              checked={selectedCategories.includes(category.toLowerCase())}
-              onClick={() => onCategoryChange(index)}
-              style={{ transform: "scale(1.5)" }}
-            />
-            <label
-              htmlFor={`category-${index}`}
-              className={`text-base ${
-                selectedCategories.includes(category.toLowerCase())
-                  ? "text-gray-800"
-                  : "text-gray-800"
-              } font-semibold`}
-            >
-              {category.length > 25
-                ? category.substring(0, 25) + "..."
-                : category}
-            </label>
-          </div>
-        ))}
-      </ul>
+const CategoryFilter = ({ categories = [], selectedCategories = [], onCategoryChange }) => (
+  <div className="sidebar-widget w-full">
+    <div className="sidebar-widget-header flex items-center gap-2">
+      <RiPriceTag3Line className="w-4 h-4" />
+      Categories
+      {selectedCategories.length > 0 && (
+        <span className="ml-auto bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          {selectedCategories.length}
+        </span>
+      )}
     </div>
-  );
-};
+    <ul className="py-2 max-h-52 overflow-y-auto scrollbar-hide">
+      {categories.map((category, idx) => {
+        const lc = category.toLowerCase();
+        const checked = selectedCategories.includes(lc);
+        return (
+          <li key={idx}>
+            <label className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
+              ${checked ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onCategoryChange(idx)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium truncate">{category}</span>
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+);
 
 export default CategoryFilter;

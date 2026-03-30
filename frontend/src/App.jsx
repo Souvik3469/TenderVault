@@ -13,6 +13,7 @@ import HomePage from "./Pages/HomePage";
 import LandingPage from "./Pages/LandingPage";
 import CreateTenderPage from "./Pages/CreateTenderPage";
 import UpdateTenderPage from "./Pages/UpdateTenderPage";
+import AdminDashboardPage from "./Pages/AdminDashboardPage";
 
 function App() {
   const showToast = (message, type = "error") => {
@@ -62,6 +63,7 @@ function App() {
           <Route path="/tender/:tenderId" element={<TenderDetailsPage />} />
           <Route path="/myprofile" element={<MyProfilePage />} />
           <Route path="/profile/:userId" element={<UserProfilePage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Route>
       </Routes>
     </div>

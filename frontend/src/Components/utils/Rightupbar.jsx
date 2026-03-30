@@ -1,56 +1,59 @@
-import { Avatar } from "@chakra-ui/react";
 import React from "react";
 import { GetCompanyQuery } from "../../api/user";
-import Loading from "./Loading";
 import { Link } from "react-router-dom";
+import Avatar from "../ui/Avatar";
+import Spinner from "../ui/Spinner";
+import { RiBuilding2Line, RiArrowRightLine } from "react-icons/ri";
+
 const Rightupbar = () => {
-  const {
-    data: companies,
-    isLoading: companiesLoading,
-    isError: companiesError,
-  } = GetCompanyQuery();
-
-  if (companiesLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "400px" }}>
-        <Loading />
-      </div>
-    );
-  }
-
-  if (companiesError) {
-    return <div>Error loading companies.</div>;
-  }
+  const { data: companies, isLoading, isError } = GetCompanyQuery();
 
   return (
-    <div className="w-[70%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide shadow-lg">
-      <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
-        <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Registered Companies
-        </h1>
+    <div className="sidebar-widget">
+      <div className="sidebar-widget-header">
+        <RiBuilding2Line className="w-3.5 h-3.5" />
+        <span>Companies</span>
+        {companies?.length > 0 && (
+          <span className="ml-auto text-slate-400 font-normal normal-case tracking-normal">
+            {companies.length}
+          </span>
+        )}
       </div>
-      <ul>
-        {companies?.map((company) => {
-          const companyName =
-            company.name.length > 20
-              ? company.name.substring(0, 20) + "..."
-              : company.name;
-          return (
-            <div
-              className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-300 p-1 group cursor-pointer hover:shadow-lg m-auto"
-              key={company.id}
-            >
-              <Avatar
-                className="w-10 h-10 bg-gray-500 rounded-3xl"
-                src={company.profileImage}
-              />
-              <Link to={`/profile/${company.id}`}>
-                <h3 className="text-gray-800  font-semibold">{companyName}</h3>
-              </Link>
-            </div>
-          );
-        })}
-      </ul>
+
+      <div className="py-1">
+        {isLoading && (
+          <div className="flex justify-center py-5">
+            <Spinner size="sm" />
+          </div>
+        )}
+        {isError && (
+          <p className="text-xs text-slate-400 text-center py-4">Failed to load.</p>
+        )}
+        {!isLoading && !isError && companies?.length === 0 && (
+          <p className="text-xs text-slate-400 text-center py-4">No companies yet.</p>
+        )}
+
+        {companies?.slice(0, 6).map((company) => (
+          <Link
+            key={company.id}
+            to={`/profile/${company.id}`}
+            className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 transition-colors group"
+          >
+            <Avatar src={company.profileImage} name={company.name} size="xs" />
+            <p className="text-sm text-slate-700 truncate group-hover:text-blue-600 transition-colors">
+              {company.name}
+            </p>
+          </Link>
+        ))}
+
+        {companies?.length > 6 && (
+          <div className="px-3 py-2 border-t border-slate-100 mt-1">
+            <span className="text-xs text-slate-400">
+              +{companies.length - 6} more companies
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

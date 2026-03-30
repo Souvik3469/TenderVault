@@ -11,251 +11,214 @@ import { tenderdetailsquery } from "../../api/tender";
 import { useParams } from "react-router-dom";
 import Loading from "../utils/Loading";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import BidCard from "./BidCard";
 import Confirmation from "../utils/ConfirmationModal";
+import {
+  RiMoneyDollarCircleLine, RiSortAsc, RiSortDesc,
+  RiAddLine, RiFileList3Line,
+} from "react-icons/ri";
+import Spinner from "../ui/Spinner";
 
 const BidList = () => {
   const { tenderId } = useParams();
   const [selectedBid, setSelectedBid] = useState(null);
-  const [confirmationType, setConfirmationType] = useState(null);
+  const [confirmType, setConfirmType] = useState(null);
   const [isBidding, setIsBidding] = useState(false);
-  const [bidAmount, setBidAmount] = useState(0);
+  const [bidAmount, setBidAmount] = useState("");
+  const [bidMessage, setBidMessage] = useState("");
   const [sortBy, setSortBy] = useState(null);
-  const [loadingAdd, setLoadingAdd] = useState(false);
+  const [loadingAdd, setLoadingAdd]     = useState(false);
   const [loadingAccept, setLoadingAccept] = useState(false);
   const [loadingReject, setLoadingReject] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
-  const {
-    data: user,
-    isLoading: userLoading,
-    isError: userError,
-  } = GetMyDetailsQuery();
-  const {
-    data: tenderDetails,
-    isLoading: tenderDetailsLoading,
-    isError: tenderDetailsError,
-    refetch: refetchTenderDetails,
-  } = tenderdetailsquery(tenderId);
-  const {
-    data: bids,
-    isLoading: bidsLoading,
-    isError: bidsError,
-    refetch: refetchBids,
-  } = getallbidsquery(tenderId);
+  const { data: user, isLoading: userLoading }   = GetMyDetailsQuery();
+  const { data: tenderDetails, isLoading: tdLoading, refetch: refetchTender } = tenderdetailsquery(tenderId);
+  const { data: bids = [], isLoading: bidsLoading, refetch: refetchBids } = getallbidsquery(tenderId);
 
-  const showToast = (message, type = "error") => {
-    toast[type](message, {
-      position: "top-center",
-      autoClose: 5000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-  };
-  if (userLoading || tenderDetailsLoading || bidsLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "1200px" }}>
-        <Loading />
-      </div>
-    );
-  }
+  const showToast = (msg, type = "error") =>
+    toast[type](msg, { position: "top-center", autoClose: 3500, hideProgressBar: true, theme: "light" });
 
-  if (userError || tenderDetailsError || bidsError) {
-    return <div>Error loading data.</div>;
-  }
+  if (userLoading || tdLoading || bidsLoading) return <Loading />;
 
-  const handleSort = (order) => setSortBy(order);
+  const minBudget = tenderDetails?.budget ?? tenderDetails?.cost ?? 0;
+  const tenderOpen = tenderDetails?.status === "open";
 
   const handleBid = async () => {
+    const amount = parseFloat(bidAmount);
+    if (isNaN(amount) || amount <= 0) {
+      showToast("Enter a valid bid amount");
+      return;
+    }
+    // no minimum enforcement on client — backend validates
     try {
       setLoadingAdd(true);
-      const bidAmountFloat = parseFloat(bidAmount);
-
-      if (isNaN(bidAmountFloat)) {
-        showToast("Invalid bid amount", "error");
-        return;
-      }
-      if (bidAmountFloat < tenderDetails.cost) {
-        showToast(
-          "Bid amount should be more than the cost of the tender",
-          "error"
-        );
-        return;
-      }
-
-      await createbid(bidAmountFloat, tenderId);
+      // New API: createbid(tenderId, { amount, message })
+      await createbid(tenderId, { amount, message: bidMessage || undefined });
       refetchBids();
-      showToast("Bid Listed Successfully", "success");
-
-      // Refetch bids in the background
-    } catch (error) {
-      showToast("Some Error occurred in listing bid", "error");
+      showToast("Bid submitted successfully!", "success");
+      setIsBidding(false);
+      setBidAmount("");
+      setBidMessage("");
+    } catch (err) {
+      showToast(err?.response?.data?.message ?? "Failed to submit bid");
     } finally {
       setLoadingAdd(false);
-      setIsBidding(false);
-      setBidAmount(0);
     }
   };
 
-  const handleConfirmAction = async () => {
+  const handleConfirm = async () => {
     try {
-      switch (confirmationType) {
-        case "delete":
-          setLoadingDelete(true);
-          await deletebid(selectedBid.id);
-
-          refetchBids();
-
-          showToast("Bid deleted successfully", "success");
-          break;
+      switch (confirmType) {
         case "accept":
           setLoadingAccept(true);
           await acceptBid(selectedBid.id);
-
           refetchBids();
-          refetchTenderDetails();
-          showToast("Bid accepted successfully", "success");
+          refetchTender();
+          showToast("Bid accepted — tender awarded!", "success");
           break;
         case "reject":
           setLoadingReject(true);
           await rejectBid(selectedBid.id);
-
           refetchBids();
-
-          showToast("Bid rejected successfully", "success");
+          showToast("Bid rejected", "success");
           break;
-        default:
+        case "delete":
+          setLoadingDelete(true);
+          await deletebid(selectedBid.id);
+          refetchBids();
+          showToast("Bid withdrawn", "success");
           break;
       }
-    } catch (error) {
-      showToast("Error processing action", "error");
+    } catch {
+      showToast("Action failed, please try again");
     } finally {
-      setLoadingDelete(false);
       setLoadingAccept(false);
       setLoadingReject(false);
+      setLoadingDelete(false);
       setSelectedBid(null);
-      setConfirmationType(null);
+      setConfirmType(null);
     }
   };
 
   const sortedBids = [...bids];
-  if (sortBy === "lowToHigh") sortedBids.sort((a, b) => a.amount - b.amount);
-  else if (sortBy === "highToLow")
-    sortedBids.sort((a, b) => b.amount - a.amount);
+  if (sortBy === "asc")  sortedBids.sort((a, b) => a.amount - b.amount);
+  if (sortBy === "desc") sortedBids.sort((a, b) => b.amount - a.amount);
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto mt-8 space-y-4">
-        {isBidding ? (
-          <div className="bg-white p-4 rounded-lg shadow-md flex items-center justify-center">
-            <input
-              type="text"
-              placeholder="Enter your bid amount"
-              className="w-48 py-2 px-3 border rounded-l-lg"
-              onChange={(e) => setBidAmount(e.target.value)}
-            />
-            <button
-              onClick={handleBid}
-              className="bg-blue-500 text-white py-2 px-6 rounded-r-lg hover:bg-blue-600"
-              style={{ alignSelf: "center" }}
-              disabled={loadingAdd}
-            >
-              {loadingAdd ? "Submitting..." : "Submit Bid"}
-            </button>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            {user.role === "vendor" && (
-              <button
-                onClick={() => setIsBidding(true)}
-                className="bg-green-500 text-white py-2 px-6 rounded-lg hover-bg-green-600"
-              >
-                Bid
-              </button>
-            )}
-          </div>
-        )}
+    <div className="mt-6">
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <RiFileList3Line className="w-5 h-5 text-blue-600" />
+          Bids
+          <span className="text-sm font-normal text-slate-500">({bids.length})</span>
+        </h2>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSortBy(sortBy === "asc" ? null : "asc")}
+            className={`btn-sm btn ${sortBy === "asc" ? "btn-primary" : "btn-secondary"} flex items-center gap-1`}
+          >
+            <RiSortAsc className="w-3.5 h-3.5" /> Low–High
+          </button>
+          <button
+            onClick={() => setSortBy(sortBy === "desc" ? null : "desc")}
+            className={`btn-sm btn ${sortBy === "desc" ? "btn-primary" : "btn-secondary"} flex items-center gap-1`}
+          >
+            <RiSortDesc className="w-3.5 h-3.5" /> High–Low
+          </button>
+        </div>
       </div>
 
-      <div className="max-w-4xl mx-auto mt-8 space-y-4">
-        <div className="flex justify-center">
-          <h3 className="text-2xl font-semibold">Bids</h3>
-          <div className="ml-4 flex">
+      {/* Place bid — vendors only, on open tenders */}
+      {user?.role === "vendor" && tenderOpen && (
+        <div className="card p-4 mb-4">
+          {isBidding ? (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold text-slate-800">Submit Your Bid</h3>
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <RiMoneyDollarCircleLine className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    placeholder={`Amount (e.g. ${minBudget})`}
+                    className="input pl-9"
+                  />
+                </div>
+              </div>
+              <textarea
+                value={bidMessage}
+                onChange={(e) => setBidMessage(e.target.value)}
+                placeholder="Cover note / proposal summary (optional)"
+                rows={2}
+                className="input resize-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBid}
+                  disabled={loadingAdd || !bidAmount}
+                  className="btn-primary btn-md flex items-center gap-2"
+                >
+                  {loadingAdd ? <Spinner size="sm" /> : null}
+                  {loadingAdd ? "Submitting…" : "Submit Bid"}
+                </button>
+                <button onClick={() => { setIsBidding(false); setBidAmount(""); setBidMessage(""); }}
+                  className="btn-secondary btn-md">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
-              className={`${
-                sortBy === "lowToHigh"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300 text-gray-700"
-              } py-2 px-4 rounded-l-lg hover-bg-blue-600`}
-              onClick={() => handleSort("lowToHigh")}
+              onClick={() => setIsBidding(true)}
+              className="btn-primary btn-md flex items-center gap-2 w-full justify-center"
             >
-              Low to High
+              <RiAddLine className="w-4 h-4" /> Place a Bid
             </button>
-            <button
-              className={`${
-                sortBy === "highToLow"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300 text-gray-700"
-              } py-2 px-4 rounded-r-lg hover-bg-blue-600`}
-              onClick={() => handleSort("highToLow")}
-            >
-              High to Low
-            </button>
-          </div>
+          )}
         </div>
+      )}
 
-        {sortedBids?.length > 0 ? (
-          sortedBids.map((bid) => (
+      {/* Bid list */}
+      {sortedBids.length === 0 ? (
+        <div className="text-center py-12 text-slate-400 text-sm">
+          No bids placed yet.
+          {user?.role === "vendor" && tenderOpen && " Be the first to bid!"}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {sortedBids.map((bid) => (
             <BidCard
               key={bid.id}
               bid={bid}
-              toAccept={() => {
-                setSelectedBid(bid);
-                setConfirmationType("accept");
-              }}
-              toReject={() => {
-                setSelectedBid(bid);
-                setConfirmationType("reject");
-              }}
-              toDelete={() => {
-                setSelectedBid(bid);
-                setConfirmationType("delete");
-              }}
+              toAccept={() => { setSelectedBid(bid); setConfirmType("accept"); }}
+              toReject={() => { setSelectedBid(bid); setConfirmType("reject"); }}
+              toDelete={() => { setSelectedBid(bid); setConfirmType("delete"); }}
               loadingAccept={loadingAccept}
               loadingReject={loadingReject}
               loadingDelete={loadingDelete}
             />
-          ))
-        ) : (
-          <div className="flex items-center justify-center">
-            <p className="text-gray-600">No bids yet.</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
+      {/* Confirmation modal */}
       {selectedBid && (
         <Confirmation
           message={
-            confirmationType === "delete"
-              ? "Are you sure you want to delete this bid?"
-              : confirmationType === "accept"
-              ? "Are you sure you want to accept this bid?"
-              : "Are you sure you want to reject this bid?"
+            confirmType === "accept" ? "Accept this bid? The tender will be marked as awarded and all other bids will be rejected." :
+            confirmType === "reject" ? "Reject this bid?" :
+            "Withdraw your bid? This cannot be undone."
           }
-          onConfirm={handleConfirmAction}
-          onCancel={() => {
-            setSelectedBid(null);
-            setConfirmationType(null);
-          }}
+          onConfirm={handleConfirm}
+          onCancel={() => { setSelectedBid(null); setConfirmType(null); }}
           confirmButtonClass={
-            confirmationType === "accept"
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-red-500 hover:bg-red-600 text-white"
+            confirmType === "accept" ? "btn-success" : "btn-danger"
           }
         />
       )}

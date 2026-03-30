@@ -122,7 +122,7 @@ export const askQuestion = async (
 ): Promise<ApiResponse<Question>> => {
   const { data } = await apiClient.post<ApiResponse<Question>>(
     `/tenders/${tenderId}/questions`,
-    { body }
+    { text: body }
   );
   return data;
 };
@@ -134,7 +134,7 @@ export const answerQuestion = async (
 ): Promise<ApiResponse<Question>> => {
   const { data } = await apiClient.post<ApiResponse<Question>>(
     `/tenders/${tenderId}/questions/${questionId}/answers`,
-    { answer }
+    { text: answer }
   );
   return data;
 };
@@ -150,7 +150,7 @@ export const getalltenderquery = (params?: {
   useQuery({
     queryKey: tenderKeys.all(),
     queryFn: () => getAllTenders(params),
-    select: (res) => res.data,
+    select: (res) => res.data?.tenders ?? [],
   });
 
 export const getMyTendersQuery = () =>
@@ -179,7 +179,7 @@ export const searchTendersQuery = (searchQuery: string) =>
   useQuery({
     queryKey: tenderKeys.search(searchQuery),
     queryFn: () => searchTenders(searchQuery),
-    select: (res) => res.data,
+    select: (res) => (res.data as any)?.tenders ?? [],
     enabled: searchQuery.length > 0,
   });
 

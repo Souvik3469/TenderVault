@@ -43,13 +43,20 @@ export interface Bid {
   createdAt: string;
 }
 
+export interface Answer {
+  id: string;
+  text: string;
+  createdAt: string;
+  owner?: { id: string; name: string; role: string; profileImage?: string };
+}
+
 export interface Question {
   id: string;
-  body: string;
-  answer?: string;
+  text: string;
   tenderId: string;
   userId: string;
-  asker?: User;
+  asker?: { id: string; name: string; profileImage?: string };
+  answers: Answer[];
   createdAt: string;
 }
 
@@ -72,16 +79,23 @@ export interface TenderStats {
 
 export interface AdminStats {
   users: { total: number; vendors: number; companies: number };
-  tenders: { total: number; byStatus: Record<string, number> };
-  bids: { total: number; byStatus: Record<string, number> };
+  tenders: {
+    total: number;
+    draft: number;
+    open: number;
+    closed: number;
+    awarded: number;
+    cancelled: number;
+  };
+  bids: { total: number };
 }
 
 export interface PaginatedTenders {
-  items: Tender[];
+  tenders: Tender[];
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
+  pages: number;
 }
 
 // ─── Request Payloads ─────────────────────────────────────────────────────────
