@@ -1,77 +1,154 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import {
+  RiBuilding2Line, RiPriceTag3Line, RiTimeLine,
+  RiArrowRightLine, RiPencilLine, RiDeleteBinLine, RiSendPlaneLine,
+} from "react-icons/ri";
+import StatusBadge from "../ui/StatusBadge";
 import StarRating from "../utils/StarRating";
-const renderStarRating = (rating) => {
-  const stars = [];
+import { usePublishTender } from "../../api/tender";
+import { toast } from "react-toastify";
 
-  for (let i = 1; i <= 5; i++) {
-    const starClass = i <= rating ? "text-yellow-500" : "text-yellow-200";
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=80";
 
-    stars.push(
-      <span key={i} className={`text-2xl mr-1 ${starClass}`}>
-        ★
-      </span>
-    );
-  }
-
-  return stars;
+const formatBudget = (val) => {
+  if (!val && val !== 0) return "—";
+  return `₹ ${Number(val).toLocaleString("en-IN")} L`;
 };
+
+const formatDeadline = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return { label: "Expired", urgent: true };
+  if (diff <= 3) return { label: `${diff}d left`, urgent: true };
+  return { label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), urgent: false };
+};
+
 const TenderCard = ({ tender, user, toDelete, loadingDelete }) => {
-  const isCompanyTender =
-    tender?.companyId === user?.id && user?.role === "company";
-  const isUnsold = tender.status !== "sold";
+  if (!tender) return null;
+
+  const { mutate: publish, isLoading: publishing } = usePublishTender();
+
+  const isOwner = tender.companyId === user?.id && user?.role === "company";
+  const isEditable = isOwner && !["awarded", "cancelled"].includes(tender.status);
+
+  const handlePublish = () => {
+    publish(tender.id, {
+      onSuccess: () => toast.success("Tender published! Vendors can now bid.", { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" }),
+      onError: (err) => toast.error(err?.response?.data?.message ?? "Failed to publish", { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" }),
+    });
+  };
+  const deadline = formatDeadline(tender.deadline);
+  const companyName = tender.company?.name ?? tender.companyName ?? "—";
+  const budget = tender.budget ?? tender.cost;
+
   return (
-    <div className="bg-gray-50 rounded-lg p-4 cursor-pointer shadow-lg ">
-      <div className="flex flex-col items-center ">
-        <div className="w-full h-40 rounded-lg overflow-hidden m-2">
-          <img
-            src={
-              tender.imageUrl ||
-              "https://media.istockphoto.com/id/1267010934/photo/experienced-engineer-explaining-the-problems-in-construction-works-development-after-recession.jpg?b=1&s=612x612&w=0&k=20&c=SA3ZB024TeuvRX_l_650nAIC3Ebfnf707vkbY1ifYEo="
-            }
-            alt={tender.companyName}
-            className=" object-cover   mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110  "
-          />
+    <div className="card-hover flex flex-col overflow-hidden group">
+      {/* Thumbnail */}
+      <div className="relative h-44 overflow-hidden">
+        <img
+          src={tender.imageUrl || FALLBACK_IMG}
+          alt={tender.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
+
+        {/* Status badge */}
+        <div className="absolute top-3 left-3">
+          <StatusBadge status={tender.status} />
         </div>
-        <h2 className="text-xl font-semibold">{tender.title}</h2>
-        <p className="text-gray-600 text-sm">{tender.description}</p>
-        <p className="text-gray-400 text-sm mt-2">
-          Company: {tender.companyName}
+
+        {/* Deadline chip */}
+        {deadline && (
+          <div className={`absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+            ${deadline.urgent ? "bg-red-500 text-white" : "bg-white/90 text-slate-700"}`}>
+            <RiTimeLine className="w-3 h-3" />
+            {deadline.label}
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-col flex-1 p-4">
+        <h3 className="font-semibold text-slate-900 text-base leading-snug mb-1 line-clamp-2">
+          {tender.title}
+        </h3>
+        <p className="text-slate-500 text-xs line-clamp-2 mb-3 leading-relaxed">
+          {tender.description}
         </p>
-        <p className="text-gray-400 text-sm">Category: {tender.category}</p>
-        <p className="text-gray-400 text-sm">Cost: {tender.cost} Lakhs</p>
-        <p className="text-gray-400 text-sm">Status: {tender.status}</p>
 
-        <div className="flex items-center mt-2">
-          <div className="mr-2">{renderStarRating(tender.rating)}</div>
-          <div className="text-gray-400 text-sm">(Rating: {tender.rating})</div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
+          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <RiBuilding2Line className="w-3.5 h-3.5 text-slate-400" />
+            {companyName}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <RiPriceTag3Line className="w-3.5 h-3.5 text-slate-400" />
+            {tender.category}
+          </span>
+          <span className="text-sm font-bold text-blue-600 ml-auto">
+            {formatBudget(budget)}
+          </span>
         </div>
 
-        <div className="mt-4 flex flex-col items-center">
-          {user && user.role === "admin" && <StarRating tenderId={tender.id} />}
+        {/* Star rating for admin */}
+        {user?.role === "admin" && (
+          <div className="mb-3 pt-3 border-t border-slate-100">
+            <StarRating tenderId={tender.id} rating={tender.rating ?? 0} />
+          </div>
+        )}
 
-          <div className="mt-4 flex justify-center items-center">
-            {isCompanyTender && isUnsold && (
-              <div>
-                <Link to={`/updatetender/${tender.id}`}>
-                  <button className="bg-blue-500 text-white rounded-md px-2 py-1 mr-2">
-                    Update
-                  </button>
+        {/* Existing star display (non-admin) */}
+        {user?.role !== "admin" && tender.rating > 0 && (
+          <div className="flex items-center gap-1 mb-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <span key={i} className={`text-base ${i <= tender.rating ? "text-amber-400" : "text-slate-200"}`}>★</span>
+            ))}
+            <span className="text-xs text-slate-400 ml-1">({tender.rating}/5)</span>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-auto flex flex-col gap-2 pt-3 border-t border-slate-100">
+          {/* Publish banner for draft tenders owned by this user */}
+          {isOwner && tender.status === "draft" && (
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="btn-success btn-sm w-full flex items-center justify-center gap-1.5"
+            >
+              {publishing
+                ? <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <RiSendPlaneLine className="w-3.5 h-3.5" />}
+              {publishing ? "Publishing…" : "Publish Tender"}
+            </button>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Link to={`/tender/${tender.id}`} className="btn-primary btn-sm flex items-center gap-1.5 flex-1 justify-center">
+              View Details <RiArrowRightLine className="w-3.5 h-3.5" />
+            </Link>
+
+            {isEditable && (
+              <>
+                <Link to={`/updatetender/${tender.id}`}
+                  className="btn-secondary btn-sm p-2" title="Edit">
+                  <RiPencilLine className="w-4 h-4" />
                 </Link>
                 <button
                   onClick={toDelete}
                   disabled={loadingDelete}
-                  className="bg-red-500 text-white rounded-md px-2 py-1 mr-2"
+                  className="btn-danger btn-sm p-2" title="Delete"
                 >
-                  {loadingDelete ? "Deleting..." : "Delete"}
+                  {loadingDelete
+                    ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    : <RiDeleteBinLine className="w-4 h-4" />}
                 </button>
-              </div>
+              </>
             )}
-            <Link to={`/tender/${tender.id}`}>
-              <button className="bg-green-500 text-white rounded-md px-2 py-1 mr-2">
-                Details
-              </button>
-            </Link>
           </div>
         </div>
       </div>

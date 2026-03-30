@@ -1,229 +1,202 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../Navbar";
 import { updateTender, tenderdetailsquery } from "../../api/tender";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { GetMyDetailsQuery } from "../../api/user";
-
 import Loading from "../utils/Loading";
+import Spinner from "../ui/Spinner";
+import {
+  RiFileList3Line, RiPriceTag3Line, RiTimeLine,
+  RiImageLine, RiMoneyDollarCircleLine,
+} from "react-icons/ri";
+
+const FormField = ({ label, icon: Icon, error, children }) => (
+  <div className="form-group">
+    <label className="label flex items-center gap-1.5">
+      {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />} {label}
+    </label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+const CATEGORIES = [
+  "Electrical Works", "Civil Construction", "Road Infrastructure",
+  "Solar Energy", "IT & Software", "Hospitality", "Healthcare", "Water Supply", "Other",
+];
 
 const UpdateTender = () => {
   const { tenderId } = useParams();
-  const {
-    data: tenderDetails,
-    isLoading,
-    isError,
-  } = tenderdetailsquery(tenderId);
-  const {
-    data: user,
-    isLoading: userLoading,
-    isError: userError,
-  } = GetMyDetailsQuery();
+  const navigate = useNavigate();
+  const { data: tenderDetails, isLoading, isError } = tenderdetailsquery(tenderId);
+  const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
 
-  const [tenderName, setTenderName] = useState("");
-  const [description, setDescription] = useState("");
-  const [cost, setCost] = useState(0);
-  const [category, setCategory] = useState("");
-  const [document, setDocument] = useState(null);
-  const [tenderImage, setTenderImage] = useState(null);
-  const [loadingUpdate, setLoadingUpdate] = useState(false);
-  let navigate = useNavigate();
-  const showToast = (message, type = "error") => {
-    toast[type](message, {
-      position: "top-center",
-      autoClose: 5000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-  };
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "", description: "", budget: "", category: "", deadline: "", imageUrl: "",
+  });
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     if (!isLoading && !isError && tenderDetails) {
-      const { title, description, cost, category,imageUrl } = tenderDetails;
-      setTenderName(title || "");
-      setDescription(description || "");
-      setCost(parseFloat(cost) || 0);
-      setCategory(category || "");
-      setTenderImage(imageUrl || "");
+      const deadline = tenderDetails.deadline
+        ? new Date(tenderDetails.deadline).toISOString().slice(0, 16)
+        : "";
+      setForm({
+        title: tenderDetails.title ?? "",
+        description: tenderDetails.description ?? "",
+        budget: String(tenderDetails.budget ?? tenderDetails.cost ?? ""),
+        category: tenderDetails.category ?? "",
+        deadline,
+        imageUrl: tenderDetails.imageUrl ?? "",
+      });
     }
   }, [tenderDetails, isLoading, isError]);
 
-  if (isLoading || loadingUpdate || userLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "1200px" }}>
-        <Loading />
-      </div>
-    );
-  }
+  const showToast = (msg, type = "error") =>
+    toast[type](msg, { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" });
 
-  if (isError || userError) {
-    return <div>Error loading data.</div>;
-  }
+  if (isLoading || userLoading) return <Loading />;
+  if (isError) return (
+    <div className="page-container flex items-center justify-center h-screen text-slate-500">
+      Failed to load tender details.
+    </div>
+  );
+
+  const validate = () => {
+    const e = {};
+    if (!form.title.trim())       e.title = "Title is required";
+    if (!form.description.trim()) e.description = "Description is required";
+    if (!form.budget || isNaN(Number(form.budget)) || Number(form.budget) <= 0)
+      e.budget = "Enter a valid budget amount";
+    if (!form.category) e.category = "Select a category";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleChange = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedTender = {
-      title: tenderName,
-      description,
-      cost: parseFloat(cost),
-      category,
-      imageUrl: tenderImage,
-    };
+    if (!validate()) return;
     try {
-      setLoadingUpdate(true);
-      const result = await updateTender(tenderId, updatedTender);
-
-      if (result.success) {
-        setTenderName("");
-        setDescription("");
-        setCost(0);
-        setCategory("");
-        setDocument(null);
-        setTenderImage(null);
-        showToast("Tender Updated Successfully", "success");
-        navigate("/myprofile");
-      }
-    } catch (error) {
-      console.error(result.message);
-      showToast("Some Error occurred in updating tender", "error");
+      setLoading(true);
+      await updateTender(tenderId, {
+        title: form.title,
+        description: form.description,
+        cost: Number(form.budget),
+        category: form.category,
+        deadline: form.deadline ? new Date(form.deadline).toISOString() : undefined,
+        imageUrl: form.imageUrl || undefined,
+      });
+      showToast("Tender updated successfully!", "success");
+      navigate("/myprofile");
+    } catch (err) {
+      showToast(err?.response?.data?.message ?? "Failed to update tender");
     } finally {
-      setLoadingUpdate(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div>
+    <div className="page-container">
       <Navbar user={user} />
-
-      <div className="bg-gray-200 min-h-[90vh] flex flex-col items-center justify-center">
-        <div className="bg-white p-8 h-[87.5vh] rounded-lg shadow-md w-full max-w-lg">
-          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-4">
-            Update Tender
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <RiFileList3Line className="w-6 h-6 text-blue-600" /> Edit Tender
           </h1>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label
-                htmlFor="tenderName"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Name
-              </label>
-              <input
-                type="text"
-                id="tenderName"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderName}
-                onChange={(e) => setTenderName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="description"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Description
-              </label>
-              <textarea
-                id="description"
-                rows="4"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="cost"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Cost
-              </label>
-              <input
-                type="number" // Change input type to number
-                id="cost"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="category"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Category
-              </label>
-              <input
-                type="text"
-                id="category"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="tenderImage"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Image Url
-              </label>
-              <input
-                type="text"
-                id="tenderImage"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderImage}
-                onChange={(e) => setTenderImage(e.target.value)}
-                required
-              />
-            </div>
-            {/* <div className="mb-4">
-              <label
-                htmlFor="image"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Image
-              </label>
-              <input
-                type="file"
-                id="image"
-                accept="image/*"
-                onChange={(e) => setTenderImage(e.target.files[0])}
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="document"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Upload Document
-              </label>
-              <input
-                type="file"
-                id="document"
-                accept=".pdf, .doc, .docx"
-                onChange={(e) => setDocument(e.target.files[0])}
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-              />
-            </div> */}
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none"
-            >
-              Update Tender
-            </button>
-          </form>
+          <p className="text-slate-500 text-sm mt-1">
+            Update tender details. Changes will be reflected immediately.
+          </p>
         </div>
+
+        <form onSubmit={handleSubmit} className="card p-6 flex flex-col gap-5">
+          <FormField label="Tender Title" icon={RiFileList3Line} error={errors.title}>
+            <input
+              className={`input ${errors.title ? "input-error" : ""}`}
+              placeholder="e.g. Construction of Storm Drain Network — Phase 2"
+              value={form.title}
+              onChange={handleChange("title")}
+            />
+          </FormField>
+
+          <FormField label="Description" icon={null} error={errors.description}>
+            <textarea
+              rows={4}
+              className={`input resize-none ${errors.description ? "input-error" : ""}`}
+              placeholder="Scope of work, requirements, deliverables…"
+              value={form.description}
+              onChange={handleChange("description")}
+            />
+          </FormField>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <FormField label="Budget (₹ Lakhs)" icon={RiMoneyDollarCircleLine} error={errors.budget}>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className={`input ${errors.budget ? "input-error" : ""}`}
+                placeholder="e.g. 24.5"
+                value={form.budget}
+                onChange={handleChange("budget")}
+              />
+            </FormField>
+
+            <FormField label="Category" icon={RiPriceTag3Line} error={errors.category}>
+              <select
+                className={`input appearance-none ${errors.category ? "input-error" : ""}`}
+                value={form.category}
+                onChange={handleChange("category")}
+              >
+                <option value="">Select category…</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </FormField>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <FormField label="Bid Deadline (optional)" icon={RiTimeLine}>
+              <input
+                type="datetime-local"
+                className="input"
+                value={form.deadline}
+                onChange={handleChange("deadline")}
+              />
+            </FormField>
+
+            <FormField label="Cover Image URL (optional)" icon={RiImageLine}>
+              <input
+                type="url"
+                className="input"
+                placeholder="https://example.com/image.jpg"
+                value={form.imageUrl}
+                onChange={handleChange("imageUrl")}
+              />
+            </FormField>
+          </div>
+
+          {form.imageUrl && (
+            <div className="rounded-lg overflow-hidden h-32 border border-slate-200">
+              <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => navigate(-1)} className="btn-secondary btn-lg flex-1">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary btn-lg flex-1 flex items-center justify-center gap-2">
+              {loading ? <Spinner size="sm" className="text-white" /> : null}
+              {loading ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

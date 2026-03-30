@@ -1,54 +1,49 @@
-import { Avatar } from "@chakra-ui/react";
 import React from "react";
 import { GetVendorQuery } from "../../api/user";
-import Loading from "./Loading";
+import Avatar from "../ui/Avatar";
+import Spinner from "../ui/Spinner";
+import { RiUserStarLine } from "react-icons/ri";
 
 const Rightdownbar = () => {
-  const {
-    data: vendors,
-    isLoading: vendorsLoading,
-    isError: vendorsError,
-  } = GetVendorQuery();
-
-  if (vendorsLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "400px" }}>
-        <Loading />
-      </div>
-    );
-  }
-
-  if (vendorsError) {
-    return <div>Error loading vendors.</div>;
-  }
+  const { data: vendors, isLoading, isError } = GetVendorQuery();
 
   return (
-    <div className="max-w-[70%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide shadow-lg">
-      <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
-        <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Registered Vendors
-        </h1>
+    <div className="sidebar-widget w-full">
+      <div className="sidebar-widget-header">
+        <RiUserStarLine className="w-4 h-4" />
+        <span>Vendors</span>
       </div>
-      <ul>
-        {vendors?.map((vendor) => {
-          const vendorName =
-            vendor.name.length > 20
-              ? vendor.name.substring(0, 20) + "..."
-              : vendor.name;
-          return (
-            <div
-              className="flex flex-grow mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-300 p-1 group cursor-pointer hover:shadow-lg m-auto"
-              key={vendor.id}
-            >
-              <Avatar
-                className="w-10 h-10 bg-gray-500 rounded-3xl"
-                src={vendor.profileImage}
-              />
-              <h3 className="text-gray-800 font-semibold">{vendorName}</h3>
+      <div className="p-2">
+        {isLoading && (
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" />
+          </div>
+        )}
+        {isError && (
+          <p className="text-xs text-slate-400 text-center py-3">Failed to load.</p>
+        )}
+        {!isLoading && !isError && vendors?.length === 0 && (
+          <p className="text-xs text-slate-400 text-center py-3">No vendors yet.</p>
+        )}
+        {vendors?.map((vendor) => (
+          <div
+            key={vendor.id}
+            className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <Avatar
+              src={vendor.profileImage}
+              name={vendor.name}
+              size="sm"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-700 truncate">
+                {vendor.name}
+              </p>
+              <p className="text-xs text-slate-400">Vendor</p>
             </div>
-          );
-        })}
-      </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

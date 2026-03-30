@@ -1,47 +1,37 @@
 import React from "react";
+import { RiMoneyDollarCircleLine } from "react-icons/ri";
 
-const PriceRangeFilter = ({
-  priceRanges,
-  selectedPriceRanges,
-  onPriceRangeChange,
-}) => {
-  return (
-    <div className="w-[80%] col-span-1 relative lg:h-[40vh] h-[50vh] my-4 mx-4 border rounded-xl bg-gray-50 overflow-scroll scrollbar-hide shadow-lg">
-      <div className="sticky top-0 z-40 bg-blue-700 p-1 h-10 w-full">
-        <h1 className="text-base text-center cursor-pointer font-bold text-gray-50 py-1 w-full">
-          Price Ranges
-        </h1>
-      </div>
-      <ul>
-        {priceRanges.map((range) => (
-          <li
-            className="flex mb-2 justify-start items-center gap-4 pl-5 hover:bg-gray-300 p-1 group cursor-pointer hover:shadow-lg m-auto"
-            key={range.id}
-          >
-            <input
-              type="checkbox"
-              id={`price-range-${range.id}`}
-              checked={selectedPriceRanges.includes(range.id)}
-              onChange={() => onPriceRangeChange(range.id)}
-              style={{ transform: "scale(1.5)" }}
-            />
-            <label
-              htmlFor={`price-range-${range.id}`}
-              className={`text-base ${
-                selectedPriceRanges.includes(range.id)
-                  ? "text-gray-800"
-                  : "text-gray-800"
-              } font-semibold`}
-            >
-              {range.label.length > 25
-                ? range.label.substring(0, 25) + "..."
-                : range.label}
+const PriceRangeFilter = ({ priceRanges = [], selectedPriceRanges = [], onPriceRangeChange }) => (
+  <div className="sidebar-widget w-full">
+    <div className="sidebar-widget-header flex items-center gap-2">
+      <RiMoneyDollarCircleLine className="w-4 h-4" />
+      Budget Range
+      {selectedPriceRanges.length > 0 && (
+        <span className="ml-auto bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          {selectedPriceRanges.length}
+        </span>
+      )}
+    </div>
+    <ul className="py-2">
+      {priceRanges.map((range) => {
+        const checked = selectedPriceRanges.includes(range.id);
+        return (
+          <li key={range.id}>
+            <label className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
+              ${checked ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onPriceRangeChange(range.id)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium">{range.label}</span>
             </label>
           </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+        );
+      })}
+    </ul>
+  </div>
+);
 
 export default PriceRangeFilter;

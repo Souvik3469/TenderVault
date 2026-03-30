@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import {
   deleteTender,
   getallcategoryquery,
-  getalltenderquery,
   getMyTendersQuery,
-  searchTendersQuery,
 } from "../../api/tender";
 import Navbar from "../Navbar";
 import Loading from "../utils/Loading";
@@ -12,306 +10,220 @@ import TenderCard from "../tender/TenderCard";
 import CategoryFilter from "../utils/CategoryFilter";
 import PriceRangeFilter from "../utils/PriceRangeFilter";
 import { GetMyDetailsQuery } from "../../api/user";
-import Rightupbar from "../utils/Rightupbar";
-import Rightdownbar from "../utils/Rightdownbar";
-import { useDebounce } from "../../hooks/useDebounce";
 import Confirmation from "../utils/ConfirmationModal";
+import Avatar from "../ui/Avatar";
+import { toast } from "react-toastify";
+import {
+  RiFileList3Line, RiCheckboxCircleLine, RiSearchLine,
+  RiUserLine, RiMailLine, RiBriefcaseLine,
+} from "react-icons/ri";
+
+const PRICE_RANGES = [
+  { id: 1, label: "Under ₹10L",   minPrice: 0,    maxPrice: 10 },
+  { id: 2, label: "₹10L – ₹50L",  minPrice: 10,   maxPrice: 50 },
+  { id: 3, label: "₹50L – ₹1Cr",  minPrice: 50,   maxPrice: 100 },
+  { id: 4, label: "₹1Cr – ₹5Cr",  minPrice: 100,  maxPrice: 500 },
+  { id: 5, label: "Above ₹5Cr",   minPrice: 500,  maxPrice: Infinity },
+];
 
 const MyProfile = () => {
+  const [activeTab, setActiveTab] = useState("open");
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [showSoldTenders, setShowSoldTenders] = useState(true);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTender, setSelectedTender] = useState(null);
-  const [confirmationType, setConfirmationType] = useState(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
-  const debouncedSearchTerm = useDebounce(searchTerm, 2000);
 
-  const {
-    data: categories,
-    isLoading: categoriesLoading,
-    isError: categoriesError,
-  } = getallcategoryquery();
-  const {
-    data: tenders,
-    isLoading: tendersLoading,
-    isError: tendersError,
-    refetch: refetchAllTenders,
-  } = getalltenderquery();
-  const {
-    data: searchResults,
-    isLoading: searchResultsLoading,
-    isError: searchResultsError,
-  } = searchTendersQuery(debouncedSearchTerm);
-  const { refetch: refetchMyTenders } = getMyTendersQuery();
-  const {
-    data: user,
-    isLoading: userLoading,
-    isError: userError,
-  } = GetMyDetailsQuery();
+  const { data: categories } = getallcategoryquery();
+  const { data: myTenders = [], isLoading: tendersLoading, refetch: refetchAll } = getMyTendersQuery();
+  const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
 
-  if (categoriesLoading || tendersLoading || userLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "1200px" }}>
-        <Loading />
-      </div>
-    );
-  }
+  const showToast = (msg, type = "error") =>
+    toast[type](msg, { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" });
 
-  if (categoriesError || tendersError || userError) {
-    return <div>Error loading data.</div>;
-  }
-
-  const dummyPriceRanges = [
-    { id: 1, label: "Under 1000", minPrice: 0, maxPrice: 1000 },
-    { id: 2, label: "1001 - 1500", minPrice: 1001, maxPrice: 1500 },
-    { id: 3, label: "1501 - 2000", minPrice: 1501, maxPrice: 2000 },
-    { id: 4, label: "2001 - 2500", minPrice: 2001, maxPrice: 2500 },
-    { id: 5, label: "Over 2500", minPrice: 2501, maxPrice: Infinity },
-  ];
+  if (tendersLoading || userLoading) return <Loading />;
 
   const handleCategoryChange = (categoryId) => {
-    const categoryName = categories[categoryId].toLowerCase();
+    const name = (categories?.[categoryId] ?? "").toLowerCase();
     setSelectedCategories((prev) =>
-      prev.includes(categoryName)
-        ? prev.filter((name) => name !== categoryName)
-        : [...prev, categoryName]
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]
     );
   };
 
-  const handlePriceRangeChange = (priceRangeId) => {
+  const handlePriceRangeChange = (id) => {
     setSelectedPriceRanges((prev) =>
-      prev.includes(priceRangeId)
-        ? prev.filter((range) => range !== priceRangeId)
-        : [...prev, priceRangeId]
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
     );
   };
 
-  const handleSearchChange = (query) => {
-    setSearchTerm(query);
-  };
-
-  const handleConfirmAction = async () => {
+  const handleConfirmDelete = async () => {
     try {
-      switch (confirmationType) {
-        case "delete":
-          setLoadingDelete(true);
-          await deleteTender(selectedTender.id);
-
-          refetchAllTenders();
-          refetchMyTenders();
-
-          showToast("Tender deleted successfully", "success");
-          break;
-
-        default:
-          break;
-      }
-    } catch (error) {
-      showToast("Some Error Occured in Deleting Tender", "error");
+      setLoadingDelete(true);
+      await deleteTender(selectedTender.id);
+      refetchAll();
+      showToast("Tender deleted successfully", "success");
+    } catch {
+      showToast("Failed to delete tender");
     } finally {
       setLoadingDelete(false);
-
       setSelectedTender(null);
-      setConfirmationType(null);
     }
   };
 
-  const getFilteredTenders = () => {
-    let res = [];
+  const filtered = myTenders.filter((t) => {
+    const searchMatch = !searchTerm ||
+      t.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    if (debouncedSearchTerm && searchResults) {
-      res = searchResults || [];
+    const statusMatch = activeTab === "awarded"
+      ? t.status === "awarded"
+      : t.status !== "awarded" && t.status !== "cancelled";
 
-      if (user.role === "vendor") {
-        res = searchResults?.data.filter(
-          (tender) => tender.buyerId === user.id
-        );
-      } else if (user.role === "company") {
-        res = searchResults?.data.filter(
-          (tender) =>
-            tender.companyId === user.id &&
-            (showSoldTenders || tender.status !== "sold")
-        );
-      }
+    const catMatch = !selectedCategories.length ||
+      selectedCategories.includes((t.category ?? "").toLowerCase());
 
-      return res?.filter((tender) => {
-        const categoryName = tender.category.toLowerCase();
-        const isCategorySelected =
-          !selectedCategories.length ||
-          selectedCategories.includes(categoryName);
-
-        const isPriceInRange =
-          !selectedPriceRanges.length ||
-          selectedPriceRanges.some((priceRangeId) => {
-            const range = dummyPriceRanges.find((r) => r.id === priceRangeId);
-            return (
-              range &&
-              tender.cost >= range.minPrice &&
-              tender.cost <= range.maxPrice
-            );
-          });
-
-        const isSoldStatusMatch = !showSoldTenders || tender.status === "sold";
-
-        return isCategorySelected && isPriceInRange && isSoldStatusMatch;
+    const budget = t.budget ?? t.cost ?? 0;
+    const priceMatch = !selectedPriceRanges.length ||
+      selectedPriceRanges.some((id) => {
+        const r = PRICE_RANGES.find((p) => p.id === id);
+        return r && budget >= r.minPrice && budget <= r.maxPrice;
       });
-    } else {
-      res = tenders;
 
-      if (user.role === "vendor") {
-        res = tenders.filter((tender) => tender.buyerId === user.id);
-      } else if (user.role === "company") {
-        res = tenders.filter(
-          (tender) =>
-            tender.companyId === user.id &&
-            (showSoldTenders || tender.status !== "sold")
-        );
-      }
+    return searchMatch && statusMatch && catMatch && priceMatch;
+  });
 
-      return res.filter((tender) => {
-        const isSearchMatch =
-          !debouncedSearchTerm ||
-          tender.title
-            .toLowerCase()
-            .includes(debouncedSearchTerm.toLowerCase());
-
-        const categoryName = tender.category.toLowerCase();
-        const isCategorySelected =
-          !selectedCategories.length ||
-          selectedCategories.includes(categoryName);
-
-        const isPriceInRange =
-          !selectedPriceRanges.length ||
-          selectedPriceRanges.some((priceRangeId) => {
-            const range = dummyPriceRanges.find((r) => r.id === priceRangeId);
-            return (
-              range &&
-              tender.cost >= range.minPrice &&
-              tender.cost <= range.maxPrice
-            );
-          });
-
-        const isSoldStatusMatch = !showSoldTenders || tender.status === "sold";
-
-        return (
-          isSearchMatch &&
-          isCategorySelected &&
-          isPriceInRange &&
-          isSoldStatusMatch
-        );
-      });
-    }
-  };
-
-  const filteredTenders = getFilteredTenders();
-
-  const renderTenders = () => {
-    if (debouncedSearchTerm && searchResults && searchResults?.length === 0) {
-      return <div className="text-gray-600">No matches found.</div>;
-    }
-
-    if (filteredTenders?.length === 0) {
-      return <p>No tenders available.</p>;
-    }
-
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
-        {filteredTenders?.map((tender) => (
-          <TenderCard
-            key={tender.id}
-            tender={tender}
-            user={user}
-            toDelete={() => {
-              setSelectedTender(tender);
-              setConfirmationType("delete");
-            }}
-            loadingDelete={loadingDelete}
-          />
-        ))}
-      </div>
-    );
-  };
+  const openCount   = myTenders.filter((t) => !["awarded", "cancelled"].includes(t.status)).length;
+  const awardedCount = myTenders.filter((t) => t.status === "awarded").length;
 
   return (
-    <div className="t">
-      <Navbar
-        searchTerm={searchTerm}
-        onSearchChange={handleSearchChange}
-        handleSearch={() => {}}
-        user={user}
-      />
-      <div className="flex flex-row h-[90vh]">
-        <div className="hidden lg:grid justify-items-center w-[43%] bg-gray-200">
+    <div className="page-container">
+      <Navbar user={user} searchTerm={searchTerm} onSearchChange={setSearchTerm} handleSearch={() => {}} />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar */}
+        <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 bg-white border-r border-slate-200 overflow-y-auto p-4 gap-4">
           <CategoryFilter
             categories={categories}
             selectedCategories={selectedCategories}
             onCategoryChange={handleCategoryChange}
           />
           <PriceRangeFilter
-            priceRanges={dummyPriceRanges}
+            priceRanges={PRICE_RANGES}
             selectedPriceRanges={selectedPriceRanges}
             onPriceRangeChange={handlePriceRangeChange}
           />
-        </div>
-        <div className="bg-gray-200 w-full overflow-y-scroll scrollbar-hide">
-          <div className="p-4 text-center">
-            <div className="relative inline-block">
-              <img
-                src={
-                  user.profileImage ||
-                  "https://png.pngtree.com/png-vector/20200614/ourlarge/pngtree-businessman-user-avatar-character-vector-illustration-png-image_2242909.jpg"
-                }
-                alt={user.name}
-                className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
-              />
-              <div className="absolute bottom-0 right-0 h-6 w-6 bg-green-400 border-2 border-white rounded-full"></div>
+        </aside>
+
+        {/* Main */}
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          {/* Profile header */}
+          <div className="bg-white border-b border-slate-200 px-6 py-6">
+            <div className="flex items-center gap-4">
+              <Avatar src={user?.profileImage} name={user?.name} size="lg" />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-slate-900">{user?.name}</h1>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                    <RiMailLine className="w-3.5 h-3.5" /> {user?.email}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-sm text-slate-500 capitalize">
+                    <RiBriefcaseLine className="w-3.5 h-3.5" /> {user?.role}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl font-semibold">{user.name}</h2>
-            <p className="text-gray-600">{user.role}</p>
+
+            {/* Stats */}
+            <div className="flex gap-6 mt-5 pt-5 border-t border-slate-100">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-900">{myTenders.length}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Total Tenders</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{openCount}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Active</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-violet-600">{awardedCount}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Awarded</p>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 mt-5 bg-slate-100 rounded-xl p-1 w-fit">
+              <button
+                onClick={() => setActiveTab("open")}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "open"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <RiFileList3Line className="w-4 h-4" /> Active Tenders
+                {openCount > 0 && (
+                  <span className="ml-1 text-xs bg-blue-100 text-blue-700 rounded-full px-1.5 py-0.5">
+                    {openCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("awarded")}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "awarded"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <RiCheckboxCircleLine className="w-4 h-4" /> Awarded
+                {awardedCount > 0 && (
+                  <span className="ml-1 text-xs bg-violet-100 text-violet-700 rounded-full px-1.5 py-0.5">
+                    {awardedCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="flex justify-between p-4 px-16">
-            <h1
-              className={`cursor-pointer font-bold text-xl ${
-                !showSoldTenders ? "text-blue-700" : "text-gray-500"
-              }`}
-              onClick={() => setShowSoldTenders(false)}
-            >
-              Unsold Tenders
-            </h1>
-            <h1
-              className={`cursor-pointer font-bold text-xl ${
-                showSoldTenders ? "text-blue-700" : "text-gray-500"
-              }`}
-              onClick={() => setShowSoldTenders(true)}
-            >
-              Sold Tenders
-            </h1>
+
+          {/* Tender grid */}
+          <div className="p-6">
+            {searchTerm && (
+              <div className="flex items-center gap-2 mb-4 text-sm text-slate-500">
+                <RiSearchLine className="w-4 h-4" />
+                Filtering for <span className="font-medium text-slate-700">"{searchTerm}"</span>
+              </div>
+            )}
+
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <RiFileList3Line className="w-12 h-12 mb-3 opacity-40" />
+                <p className="font-medium">No tenders here yet</p>
+                <p className="text-sm mt-1">
+                  {activeTab === "awarded" ? "No awarded tenders." : "No active tenders found."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filtered.map((tender) => (
+                  <TenderCard
+                    key={tender.id}
+                    tender={tender}
+                    user={user}
+                    toDelete={() => setSelectedTender(tender)}
+                    loadingDelete={loadingDelete}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          {renderTenders()}
-        </div>
-        <div className="hidden lg:grid justify-items-center w-[43%] bg-gray-200">
-          <Rightupbar />
-          <Rightdownbar />
-        </div>
+        </main>
+
       </div>
+
       {selectedTender && (
         <Confirmation
-          message={
-            confirmationType === "delete"
-              ? "Are you sure you want to delete this Tender?"
-              : "Not valid action"
-          }
-          onConfirm={handleConfirmAction}
-          onCancel={() => {
-            setSelectedTender(null);
-            setConfirmationType(null);
-          }}
-          confirmButtonClass={
-            confirmationType === "delete"
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-red-500 hover:bg-red-600 text-white"
-          }
+          message="Are you sure you want to delete this tender? This cannot be undone."
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setSelectedTender(null)}
+          confirmButtonClass="btn-danger"
         />
       )}
     </div>

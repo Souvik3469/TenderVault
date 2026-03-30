@@ -2,217 +2,178 @@ import React, { useState } from "react";
 import { createTender } from "../../api/tender";
 import Navbar from "../Navbar";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import Loading from "../utils/Loading";
 import { GetMyDetailsQuery } from "../../api/user";
+import Spinner from "../ui/Spinner";
+import {
+  RiFileList3Line, RiPriceTag3Line, RiTimeLine,
+  RiImageLine, RiMoneyDollarCircleLine,
+} from "react-icons/ri";
+
+const FormField = ({ label, icon: Icon, error, children }) => (
+  <div className="form-group">
+    <label className="label flex items-center gap-1.5">
+      {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />} {label}
+    </label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+const CATEGORIES = [
+  "Electrical Works", "Civil Construction", "Road Infrastructure",
+  "Solar Energy", "IT & Software", "Hospitality", "Healthcare", "Water Supply", "Other",
+];
 
 const CreateTender = () => {
-  const [tenderInfo, setTenderInfo] = useState({
-    title: "",
-    description: "",
-    cost: 0.0,
-    category: "",
+  const navigate = useNavigate();
+  const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "", description: "", budget: "", category: "", deadline: "", imageUrl: "",
   });
-  const [loadingCreate, setLoadingCreate] = useState(false);
-  const {
-    data: user,
-    isLoading: userLoading,
-    isError: userError,
-  } = GetMyDetailsQuery();
-  const showToast = (message, type = "error") => {
-    toast[type](message, {
-      position: "top-center",
-      autoClose: 5000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-  };
-  let navigate = useNavigate();
-  if (loadingCreate || userLoading) {
-    return (
-      <div style={{ minHeight: "800px", minWidth: "1200px" }}>
-        <Loading />
-      </div>
-    );
-  }
-  if (userError) {
-    return <div>Error loading User.</div>;
-  }
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    const floatValue = name === "cost" ? parseFloat(value) : value;
-    setTenderInfo((prevTenderInfo) => ({
-      ...prevTenderInfo,
-      [name]: floatValue,
-    }));
+  const [errors, setErrors] = useState({});
+
+  const showToast = (msg, type = "error") =>
+    toast[type](msg, { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" });
+
+  if (userLoading) return <Loading />;
+
+  const validate = () => {
+    const e = {};
+    if (!form.title.trim())       e.title = "Title is required";
+    if (!form.description.trim()) e.description = "Description is required";
+    if (!form.budget || isNaN(Number(form.budget)) || Number(form.budget) <= 0)
+      e.budget = "Enter a valid budget amount";
+    if (!form.category) e.category = "Select a category";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const createTenderHandler = async (event) => {
-    event.preventDefault();
+  const handleChange = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) setErrors((e) => { const n = { ...e }; delete n[field]; return n; });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
     try {
-      setLoadingCreate(true);
-      const response = await createTender(tenderInfo);
-
-      if (response.success) {
-        showToast("Tender Listed Successfully", "success");
-        setTenderInfo({
-          title: "",
-          description: "",
-          cost: 0.0,
-          category: "",
-          imageUrl:"",
-        });
-        navigate("/home");
-      } else {
-        showToast("Some Error Occured in Listing Tender", "error");
-      }
-    } catch (error) {
-      console.error("Error creating tender:", error);
-      showToast("Some Error Occured in Listing Tender", "error");
+      setLoading(true);
+      await createTender({
+        title: form.title,
+        description: form.description,
+        cost: Number(form.budget),
+        category: form.category,
+        deadline: form.deadline ? new Date(form.deadline).toISOString() : undefined,
+        imageUrl: form.imageUrl || undefined,
+      });
+      showToast("Tender created as draft! You can publish it from your profile.", "success");
+      navigate("/myprofile");
+    } catch (err) {
+      showToast(err?.response?.data?.message ?? "Failed to create tender");
     } finally {
-      setLoadingCreate(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      {" "}
+    <div className="page-container">
       <Navbar user={user} />
-      <div className="bg-gray-200 min-h-[90vh] flex flex-col items-center justify-center">
-        <div className="bg-white p-8 h-[87.5vh] rounded-lg shadow-md w-full max-w-lg">
-          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-4">
-            Create New Tender
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <RiFileList3Line className="w-6 h-6 text-blue-600" /> Post a New Tender
           </h1>
-          <form onSubmit={createTenderHandler}>
-            <div className="mb-4">
-              <label
-                htmlFor="title"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Title
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderInfo.title}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="description"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows="4"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderInfo.description}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="cost"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Cost
-              </label>
+          <p className="text-slate-500 text-sm mt-1">
+            Tenders are created as <span className="font-medium text-amber-600">Draft</span> and
+            must be published before vendors can bid.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="card p-6 flex flex-col gap-5">
+          <FormField label="Tender Title" icon={RiFileList3Line} error={errors.title}>
+            <input
+              className={`input ${errors.title ? "input-error" : ""}`}
+              placeholder="e.g. Construction of Storm Drain Network — Phase 2"
+              value={form.title}
+              onChange={handleChange("title")}
+            />
+          </FormField>
+
+          <FormField label="Description" icon={null} error={errors.description}>
+            <textarea
+              rows={4}
+              className={`input resize-none ${errors.description ? "input-error" : ""}`}
+              placeholder="Scope of work, requirements, deliverables…"
+              value={form.description}
+              onChange={handleChange("description")}
+            />
+          </FormField>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <FormField label="Budget (₹ Lakhs)" icon={RiMoneyDollarCircleLine} error={errors.budget}>
               <input
                 type="number"
+                min="0"
                 step="0.01"
-                id="cost"
-                name="cost"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderInfo.cost}
-                onChange={handleInputChange}
-                required
+                className={`input ${errors.budget ? "input-error" : ""}`}
+                placeholder="e.g. 24.5"
+                value={form.budget}
+                onChange={handleChange("budget")}
               />
+            </FormField>
+
+            <FormField label="Category" icon={RiPriceTag3Line} error={errors.category}>
+              <select
+                className={`input appearance-none ${errors.category ? "input-error" : ""}`}
+                value={form.category}
+                onChange={handleChange("category")}
+              >
+                <option value="">Select category…</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </FormField>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <FormField label="Bid Deadline (optional)" icon={RiTimeLine}>
+              <input
+                type="datetime-local"
+                className="input"
+                value={form.deadline}
+                onChange={handleChange("deadline")}
+              />
+            </FormField>
+
+            <FormField label="Cover Image URL (optional)" icon={RiImageLine}>
+              <input
+                type="url"
+                className="input"
+                placeholder="https://example.com/image.jpg"
+                value={form.imageUrl}
+                onChange={handleChange("imageUrl")}
+              />
+            </FormField>
+          </div>
+
+          {form.imageUrl && (
+            <div className="rounded-lg overflow-hidden h-32 border border-slate-200">
+              <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
             </div>
-            <div className="mb-4">
-              <label
-                htmlFor="category"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Category
-              </label>
-              <input
-                type="text"
-                id="category"
-                name="category"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderInfo.category}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="imageUrl"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Image Url
-              </label>
-              <input
-                type="text"
-                id="imageUrl"
-                name="imageUrl"
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-                value={tenderInfo.imageUrl}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            {/* <div className="mb-4">
-              <label
-                htmlFor="image"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Tender Image
-              </label>
-              <input
-                type="file"
-                id="image"
-                accept="image/*"
-                onChange={(e) => setTenderImage(e.target.files[0])}
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-              />
-            </div> */}
-            {/* <div className="mb-4">
-              <label
-                htmlFor="document"
-                className="block text-gray-700 text-sm font-bold"
-              >
-                Upload Document
-              </label>
-              <input
-                type="file"
-                id="document"
-                accept=".pdf, .doc, .docx"
-                onChange={(e) => setDocument(e.target.files[0])}
-                className="w-full py-2 px-3 border rounded-lg border-gray-300 focus:outline-none focus:border-blue-500"
-              />
-            </div> */}
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover-bg-blue-600 focus:outline-none"
-            >
-              Create Tender
+          )}
+
+          <div className="flex gap-3 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => navigate(-1)} className="btn-secondary btn-lg flex-1">
+              Cancel
             </button>
-          </form>
-        </div>
+            <button type="submit" disabled={loading} className="btn-primary btn-lg flex-1 flex items-center justify-center gap-2">
+              {loading ? <Spinner size="sm" className="text-white" /> : null}
+              {loading ? "Creating…" : "Create Tender"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
