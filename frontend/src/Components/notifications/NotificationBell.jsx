@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  RiBellLine,
-  RiBellFill,
+  RiNotification3Line,
+  RiNotification3Fill,
   RiCheckDoubleLine,
   RiBriefcaseLine,
   RiCheckboxCircleLine,
@@ -65,9 +65,9 @@ const NotificationBell = () => {
         className="relative p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/8 transition"
       >
         {count > 0 ? (
-          <RiBellFill className="w-5 h-5 text-blue-400" />
+          <RiNotification3Fill className="w-5 h-5 text-blue-400" />
         ) : (
-          <RiBellLine className="w-5 h-5" />
+          <RiNotification3Line className="w-5 h-5" />
         )}
         {count > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
@@ -108,7 +108,7 @@ const NotificationBell = () => {
               </p>
             ) : notifications.length === 0 ? (
               <div className="text-center py-10">
-                <RiBellLine className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                <RiNotification3Line className="w-8 h-8 text-slate-200 mx-auto mb-2" />
                 <p className="text-sm text-slate-400">No notifications yet</p>
               </div>
             ) : (
@@ -124,7 +124,7 @@ const NotificationBell = () => {
                   {/* Icon */}
                   <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     {TYPE_ICON[n.type] ?? (
-                      <RiBellLine className="w-4 h-4 text-slate-400" />
+                      <RiNotification3Line className="w-4 h-4 text-slate-400" />
                     )}
                   </div>
                   {/* Text */}

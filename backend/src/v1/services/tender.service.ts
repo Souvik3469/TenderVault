@@ -17,6 +17,58 @@ const safeVendor = <T extends { password?: string | null }>(user: T) => {
   return rest;
 };
 
+/**
+ * Lazily expire open tenders whose deadline has passed.
+ * Called before any read or write that depends on tender status.
+ * Returns the (possibly updated) tender, or null if not found.
+ */
+const autoExpireTender = async (tenderId: string) => {
+  const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
+  if (!tender) return null;
+  if (tender.status === 'open' && tender.deadline && new Date() > tender.deadline) {
+    const expired = await prisma.tender.update({
+      where: { id: tenderId },
+      data: { status: 'closed' },
+    });
+    // Notify all vendors with pending bids
+    const pending = await prisma.bid.findMany({
+      where: { tenderId, status: 'pending' },
+      select: { vendorId: true },
+    });
+    pending.forEach((b) =>
+      notify(b.vendorId, `The tender "${tender.title}" has closed — the submission deadline has passed.`, 'tender_closed'),
+    );
+    return expired;
+  }
+  return tender;
+};
+
+/**
+ * Bulk-expire all overdue open tenders (called before listing tenders).
+ */
+const autoExpireAll = async () => {
+  const overdue = await prisma.tender.findMany({
+    where: { status: 'open', deadline: { lt: new Date() } },
+    select: { id: true, title: true },
+  });
+  if (overdue.length === 0) return;
+
+  await prisma.tender.updateMany({
+    where: { id: { in: overdue.map((t) => t.id) } },
+    data: { status: 'closed' },
+  });
+
+  for (const t of overdue) {
+    const pending = await prisma.bid.findMany({
+      where: { tenderId: t.id, status: 'pending' },
+      select: { vendorId: true },
+    });
+    pending.forEach((b) =>
+      notify(b.vendorId, `The tender "${t.title}" has closed — the submission deadline has passed.`, 'tender_closed'),
+    );
+  }
+};
+
 // ─── Tender Lifecycle ─────────────────────────────────────────────────────────
 
 export const createTender = async (
@@ -106,6 +158,9 @@ export const getAllTenders = async ({
   status,
   role,
 }: TenderFilter) => {
+  // Close any open tenders whose deadline has passed before returning results.
+  await autoExpireAll();
+
   // Vendors and companies browsing the marketplace default to open tenders.
   // Admins see everything unless they explicitly filter.
   const resolvedStatus = status !== undefined ? status : role === 'admin' ? undefined : 'open';
@@ -156,6 +211,9 @@ export const getMyTenders = async (userId: string, role: string) => {
 };
 
 export const getTenderById = async (tenderId: string) => {
+  // Auto-expire if deadline has passed before returning details.
+  await autoExpireTender(tenderId);
+
   const tender = await prisma.tender.findUnique({
     where: { id: tenderId },
     include: {
@@ -265,17 +323,16 @@ export const createBid = async (
 ) => {
   if (role !== 'vendor') throw new AppError('Only vendors can submit bids.', 403);
 
-  const [tender, vendor] = await Promise.all([
-    prisma.tender.findUnique({ where: { id: tenderId } }),
+  const [activeTender, vendor] = await Promise.all([
+    autoExpireTender(tenderId),
     prisma.user.findUnique({ where: { id: vendorId }, select: { name: true } }),
   ]);
 
+  const tender = activeTender;
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.status !== 'open') throw new AppError('This tender is not accepting bids.', 400);
-  if (tender.deadline && new Date() > tender.deadline)
-    throw new AppError('The submission deadline for this tender has passed.', 400);
   if (input.amount < tender.cost)
-    throw new AppError(`Bid amount must be at least ${tender.cost}.`, 400);
+    throw new AppError(`Bid amount must be at least ₹${tender.cost} (the tender reserve price).`, 400);
 
   const existing = await prisma.bid.findFirst({ where: { tenderId, vendorId } });
   if (existing) throw new AppError('You have already submitted a bid for this tender.', 409);
@@ -306,6 +363,7 @@ export const getBidsForTender = async (
   userId: string,
   role: string,
 ) => {
+  await autoExpireTender(tenderId);
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
 
@@ -428,6 +486,7 @@ export const rejectBid = async (bidId: string, userId: string) => {
 export const askQuestion = async (tenderId: string, userId: string, role: string, input: QuestionInput) => {
   if (role !== 'vendor') throw new AppError('Only vendors can ask questions.', 403);
 
+  await autoExpireTender(tenderId);
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.status !== 'open') throw new AppError('Questions can only be posted on open tenders.', 400);

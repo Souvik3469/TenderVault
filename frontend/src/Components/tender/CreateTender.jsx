@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createTender } from "../../api/tender";
+import { createTender, uploadTenderImage } from "../../api/tender";
 import Navbar from "../Navbar";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import { GetMyDetailsQuery } from "../../api/user";
 import Spinner from "../ui/Spinner";
 import {
   RiFileList3Line, RiPriceTag3Line, RiTimeLine,
-  RiImageLine, RiMoneyDollarCircleLine,
+  RiImageLine, RiMoneyDollarCircleLine, RiUploadCloud2Line, RiLinkM,
 } from "react-icons/ri";
 
 const FormField = ({ label, icon: Icon, error, children }) => (
@@ -30,6 +30,8 @@ const CreateTender = () => {
   const navigate = useNavigate();
   const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageMode, setImageMode] = useState("url"); // "url" | "upload"
   const [form, setForm] = useState({
     title: "", description: "", budget: "", category: "", deadline: "", imageUrl: "",
   });
@@ -54,6 +56,21 @@ const CreateTender = () => {
   const handleChange = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
     if (errors[field]) setErrors((e) => { const n = { ...e }; delete n[field]; return n; });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const url = await uploadTenderImage(file);
+      setForm((f) => ({ ...f, imageUrl: url }));
+      showToast("Image uploaded!", "success");
+    } catch {
+      showToast("Image upload failed. Try a URL instead.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -137,17 +154,45 @@ const CreateTender = () => {
             </FormField>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            <FormField label="Bid Deadline (optional)" icon={RiTimeLine}>
-              <input
-                type="datetime-local"
-                className="input"
-                value={form.deadline}
-                onChange={handleChange("deadline")}
-              />
-            </FormField>
+          <FormField label="Bid Deadline (optional)" icon={RiTimeLine}>
+            <input
+              type="datetime-local"
+              className="input"
+              value={form.deadline}
+              onChange={handleChange("deadline")}
+            />
+          </FormField>
 
-            <FormField label="Cover Image URL (optional)" icon={RiImageLine}>
+          <div className="form-group">
+            <label className="label flex items-center gap-1.5">
+              <RiImageLine className="w-3.5 h-3.5 text-slate-400" /> Cover Image (optional)
+            </label>
+            <div className="flex gap-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setImageMode("url")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border font-medium transition-colors ${
+                  imageMode === "url"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-blue-400"
+                }`}
+              >
+                <RiLinkM className="w-3.5 h-3.5" /> Paste URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageMode("upload")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border font-medium transition-colors ${
+                  imageMode === "upload"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-blue-400"
+                }`}
+              >
+                <RiUploadCloud2Line className="w-3.5 h-3.5" /> Upload File
+              </button>
+            </div>
+
+            {imageMode === "url" ? (
               <input
                 type="url"
                 className="input"
@@ -155,7 +200,26 @@ const CreateTender = () => {
                 value={form.imageUrl}
                 onChange={handleChange("imageUrl")}
               />
-            </FormField>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg p-5 cursor-pointer hover:border-blue-400 transition-colors bg-slate-50">
+                {uploading ? (
+                  <><Spinner size="sm" /> <span className="text-sm text-slate-500">Uploading…</span></>
+                ) : (
+                  <>
+                    <RiUploadCloud2Line className="w-7 h-7 text-slate-400" />
+                    <span className="text-sm text-slate-500">Click to select an image</span>
+                    <span className="text-xs text-slate-400">JPG, PNG, WebP — max 5 MB</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={handleFileChange}
+                />
+              </label>
+            )}
           </div>
 
           {form.imageUrl && (
