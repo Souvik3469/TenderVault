@@ -53,6 +53,15 @@ export const getMyTenders = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+export const getWonTenders = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await tenderService.getWonTenders(req.user.id);
+    res.status(200).json({ success: true, message: 'Won tenders retrieved.', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getTenderById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tender = await tenderService.getTenderById(req.params.tenderId);

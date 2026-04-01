@@ -3,6 +3,7 @@ import {
   getallcategoryquery,
   getalltenderquery,
   searchTendersQuery,
+  useAwardedTendersQuery,
 } from "../../api/tender";
 import Navbar from "../Navbar";
 import Loading from "../utils/Loading";
@@ -49,7 +50,8 @@ const Home = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
 
   const { data: categories = [], isLoading: catLoading } = getallcategoryquery();
-  const { data: tenders = [],    isLoading: tenderLoading } = getalltenderquery();
+  const { data: openTenders = [],    isLoading: tenderLoading } = getalltenderquery();
+  const { data: awardedTenders = [], isLoading: awardedLoading } = useAwardedTendersQuery();
   const { data: searchResults }  = searchTendersQuery(debouncedSearch);
   const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
 
@@ -71,7 +73,7 @@ const Home = () => {
     setSelectedPriceRanges([]);
   };
 
-  if (catLoading || tenderLoading || userLoading) {
+  if (catLoading || tenderLoading || awardedLoading || userLoading) {
     return (
       <div className="page-container">
         <Navbar user={null} />
@@ -89,11 +91,11 @@ const Home = () => {
         const r = PRICE_RANGES.find((p) => p.id === id);
         return r && budget >= r.minPrice && budget <= r.maxPrice;
       });
-      const isStatus = tender.status === activeTab;
-      return isCat && isPrice && isStatus;
+      return isCat && isPrice;
     });
 
-  const base = debouncedSearch && searchResults ? searchResults : tenders;
+  const tendersByTab = activeTab === TAB_AWARDED ? awardedTenders : openTenders;
+  const base = debouncedSearch && searchResults ? searchResults : tendersByTab;
   const filteredTenders = applyFilters(base);
   const hasActiveFilters = selectedCategories.length > 0 || selectedPriceRanges.length > 0;
 
@@ -214,8 +216,8 @@ const Home = () => {
 
         {/* ── Right Sidebar ─────────────────────────────────────── */}
         <aside className="hidden xl:flex flex-col w-56 flex-shrink-0 bg-white border-l border-slate-200 overflow-y-auto p-3 gap-3">
-          <QuickStats tenders={tenders} />
-          <ClosingSoon tenders={tenders} />
+          <QuickStats tenders={openTenders} />
+          <ClosingSoon tenders={openTenders} />
         </aside>
       </div>
 

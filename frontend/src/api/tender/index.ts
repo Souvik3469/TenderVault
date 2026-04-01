@@ -14,7 +14,9 @@ import type {
 // ─── Query key factory ────────────────────────────────────────────────────────
 export const tenderKeys = {
   all:        () => ['tenders'] as const,
+  awarded:    () => ['tenders-awarded'] as const,
   mine:       () => ['get-my-tenders'] as const,
+  won:        () => ['tenders-won'] as const,
   detail:     (id: string) => ['tenderdetails', id] as const,
   categories: () => ['categories'] as const,
   search:     (q: string) => ['search-tenders', q] as const,
@@ -36,6 +38,11 @@ export const getAllTenders = async (params?: {
 
 export const getMyTender = async (): Promise<ApiResponse<Tender[]>> => {
   const { data } = await apiClient.get<ApiResponse<Tender[]>>('/tenders/mine');
+  return data;
+};
+
+export const getWonTenders = async (): Promise<ApiResponse<Tender[]>> => {
+  const { data } = await apiClient.get<ApiResponse<Tender[]>>('/tenders/won');
   return data;
 };
 
@@ -167,6 +174,20 @@ export const getMyTendersQuery = () =>
     queryKey: tenderKeys.mine(),
     queryFn: getMyTender,
     select: (res) => res.data,
+  });
+
+export const useWonTendersQuery = () =>
+  useQuery({
+    queryKey: tenderKeys.won(),
+    queryFn: getWonTenders,
+    select: (res) => res.data ?? [],
+  });
+
+export const useAwardedTendersQuery = () =>
+  useQuery({
+    queryKey: tenderKeys.awarded(),
+    queryFn: () => getAllTenders({ status: 'awarded' }),
+    select: (res) => res.data?.tenders ?? [],
   });
 
 export const getallcategoryquery = () =>
