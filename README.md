@@ -51,7 +51,7 @@ TenderVault is a production-grade **Tender Management System** built for B2B pro
 | **Notifications**   | Real-time bell with unread badge; per-type icons; mark-read / mark-all-read   |
 | **Admin Dashboard** | Platform-wide stats (users, tender statuses, bids), tender table with filters |
 | **Tender Review**   | Admin star-rating system; persisted rating reflected immediately in UI        |
-| **Profiles**        | Company view (own tenders) · Vendor view (submitted bids)                     |
+| **Profiles**        | Company view (own tenders · awarded) · Vendor view (submitted bids · won tenders) |
 | **i18n**            | Multi-language support via i18next                                            |
 | **Security**        | Helmet, CORS, express-rate-limit, Zod request validation                      |
 
@@ -162,7 +162,7 @@ Create `backend/.env`:
 ```env
 DATABASE_URL=mongodb+srv://<user>:<password>@cluster.mongodb.net/tendervault
 USER_ACCESS_SECRET=<min-32-char-random-secret>
-PORT=4000
+PORT=5000
 NODE_ENV=development
 
 # Cloudinary (image uploads)
@@ -187,25 +187,27 @@ OPENAI_API_KEY=sk-...
 
 All endpoints are prefixed with `/api/v1`.
 
-| Method | Endpoint                              | Role          | Description                             |
-| ------ | ------------------------------------- | ------------- | --------------------------------------- |
-| POST   | `/auth/register`                      | Public        | Register a new user                     |
-| POST   | `/auth/login`                         | Public        | Login and receive JWT                   |
-| GET    | `/tenders`                            | Auth          | List all tenders (search, filter, sort) |
-| POST   | `/tenders`                            | Company       | Create a tender                         |
+| Method | Endpoint                              | Role          | Description                                 |
+| ------ | ------------------------------------- | ------------- | ------------------------------------------- |
+| POST   | `/auth/register`                      | Public        | Register a new user                         |
+| POST   | `/auth/login`                         | Public        | Login and receive JWT                       |
+| GET    | `/tenders`                            | Auth          | List all tenders (search, filter, sort)     |
+| POST   | `/tenders`                            | Company       | Create a tender                             |
+| GET    | `/tenders/mine`                       | Company       | List own tenders (all statuses)             |
+| GET    | `/tenders/won`                        | Vendor        | List tenders the vendor won (awarded)       |
 | POST   | `/tenders/upload`                     | Auth          | Upload cover image → returns Cloudinary URL |
-| PATCH  | `/tenders/:id`                        | Company       | Update own tender                       |
-| DELETE | `/tenders/:id`                        | Company       | Delete own tender                       |
-| POST   | `/tenders/:id/bids`                   | Vendor        | Submit a bid                            |
-| PATCH  | `/tenders/:id/bids/:bidId/accept`     | Company       | Accept a bid                            |
-| PATCH  | `/tenders/:id/bids/:bidId/reject`     | Company       | Reject a bid                            |
-| POST   | `/tenders/:id/questions`              | Vendor        | Ask a question                          |
-| POST   | `/tenders/:id/questions/:qId/answers` | Company/Admin | Answer a question                       |
-| POST   | `/tenders/:id/review`                 | Admin         | Submit star rating                      |
-| GET    | `/notifications`                      | Auth          | Fetch notifications                     |
-| PATCH  | `/notifications/:id/read`             | Auth          | Mark notification as read               |
-| GET    | `/admin/stats`                        | Admin         | Platform-wide stats                     |
-| GET    | `/admin/tenders`                      | Admin         | All tenders with filters                |
+| PATCH  | `/tenders/:id`                        | Company       | Update own tender                           |
+| DELETE | `/tenders/:id`                        | Company       | Delete own tender                           |
+| POST   | `/tenders/:id/bids`                   | Vendor        | Submit a bid                                |
+| PATCH  | `/tenders/:id/bids/:bidId/accept`     | Company       | Accept a bid                                |
+| PATCH  | `/tenders/:id/bids/:bidId/reject`     | Company       | Reject a bid                                |
+| POST   | `/tenders/:id/questions`              | Vendor        | Ask a question                              |
+| POST   | `/tenders/:id/questions/:qId/answers` | Company/Admin | Answer a question                           |
+| POST   | `/tenders/:id/review`                 | Admin         | Submit star rating                          |
+| GET    | `/notifications`                      | Auth          | Fetch notifications                         |
+| PATCH  | `/notifications/:id/read`             | Auth          | Mark notification as read                   |
+| GET    | `/admin/stats`                        | Admin         | Platform-wide stats                         |
+| GET    | `/admin/tenders`                      | Admin         | All tenders with filters                    |
 
 ---
 
@@ -213,7 +215,8 @@ All endpoints are prefixed with `/api/v1`.
 
 ### Vendor
 
-- Browse and search all open tenders
+- Browse and search all open tenders (home — "Open Tenders" tab)
+- View tenders they won in the home "Awarded" tab and in their profile
 - Submit, view, and delete own bids
 - Ask questions on open tenders
 - Receive notifications (bid accepted/rejected)
@@ -257,6 +260,7 @@ Register/Login (role: company)
 ```
 
 **Edge cases:**
+
 - Updating a tender is blocked once it is `awarded` or `cancelled`
 - Deleting a tender is blocked once it is `awarded`
 - A tender cannot be re-opened after being `closed`, `awarded`, or `cancelled`
@@ -278,10 +282,13 @@ Register/Login (role: vendor)
                     ├─ Can withdraw (pending bids only)
                     └─► Await company decision
                           ├─ Accepted → tender marked awarded, notified ✓
+                          │     └─ Won tender appears in vendor's profile (Awarded tab)
+                          │           and on home page (Awarded tab)
                           └─ Rejected → notified, tender stays open for others
 ```
 
 **Edge cases:**
+
 - Bidding blocked if tender status is not `open`
 - Bidding blocked if the deadline has already passed (tender auto-closes)
 - Vendor cannot see other vendors' bids — only their own
@@ -329,16 +336,16 @@ pending ──[company accepts]──► accepted
 
 ### Notification Triggers
 
-| Event | Recipient | Type |
-|---|---|---|
-| Vendor submits a bid | Company | `bid_received` |
-| Company accepts a bid | Vendor (winner) | `bid_accepted` |
-| Company or auto-rejects a bid | Vendor (loser) | `bid_rejected` |
-| Admin rates a tender | Company | `tender_reviewed` |
-| Tender closed (manual or deadline) | All pending-bid vendors | `tender_closed` |
-| Tender cancelled | All pending-bid vendors | `tender_cancelled` |
-| Vendor asks a question | Company | `question_asked` |
-| Company/admin answers a question | Vendor (asker) | `question_answered` |
+| Event                              | Recipient               | Type                |
+| ---------------------------------- | ----------------------- | ------------------- |
+| Vendor submits a bid               | Company                 | `bid_received`      |
+| Company accepts a bid              | Vendor (winner)         | `bid_accepted`      |
+| Company or auto-rejects a bid      | Vendor (loser)          | `bid_rejected`      |
+| Admin rates a tender               | Company                 | `tender_reviewed`   |
+| Tender closed (manual or deadline) | All pending-bid vendors | `tender_closed`     |
+| Tender cancelled                   | All pending-bid vendors | `tender_cancelled`  |
+| Vendor asks a question             | Company                 | `question_asked`    |
+| Company/admin answers a question   | Vendor (asker)          | `question_answered` |
 
 ---
 

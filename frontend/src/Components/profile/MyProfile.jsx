@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   deleteTender,
   getallcategoryquery,
   getMyTendersQuery,
+  useWonTendersQuery,
 } from "../../api/tender";
 import Navbar from "../Navbar";
 import Loading from "../utils/Loading";
@@ -35,8 +36,16 @@ const MyProfile = () => {
   const [loadingDelete, setLoadingDelete] = useState(false);
 
   const { data: categories } = getallcategoryquery();
-  const { data: myTenders = [], isLoading: tendersLoading, refetch: refetchAll } = getMyTendersQuery();
   const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
+  const isVendor = user?.role === "vendor";
+  const { data: companyTenders = [], isLoading: companyTendersLoading, refetch: refetchAll } = getMyTendersQuery();
+  const { data: wonTenders = [], isLoading: wonTendersLoading } = useWonTendersQuery();
+  const tendersLoading = isVendor ? wonTendersLoading : companyTendersLoading;
+  const activeTenders = isVendor ? wonTenders : companyTenders;
+
+  useEffect(() => {
+    if (isVendor) setActiveTab("awarded");
+  }, [isVendor]);
 
   const showToast = (msg, type = "error") =>
     toast[type](msg, { position: "top-center", autoClose: 4000, hideProgressBar: true, theme: "light" });
@@ -70,7 +79,7 @@ const MyProfile = () => {
     }
   };
 
-  const filtered = myTenders.filter((t) => {
+  const filtered = activeTenders.filter((t) => {
     const searchMatch = !searchTerm ||
       t.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -91,8 +100,8 @@ const MyProfile = () => {
     return searchMatch && statusMatch && catMatch && priceMatch;
   });
 
-  const openCount   = myTenders.filter((t) => !["awarded", "cancelled"].includes(t.status)).length;
-  const awardedCount = myTenders.filter((t) => t.status === "awarded").length;
+  const openCount   = activeTenders.filter((t) => !["awarded", "cancelled"].includes(t.status)).length;
+  const awardedCount = activeTenders.filter((t) => t.status === "awarded").length;
 
   return (
     <div className="page-container">
@@ -135,7 +144,7 @@ const MyProfile = () => {
             {/* Stats */}
             <div className="flex gap-6 mt-5 pt-5 border-t border-slate-100">
               <div className="text-center">
-                <p className="text-2xl font-bold text-slate-900">{myTenders.length}</p>
+                <p className="text-2xl font-bold text-slate-900">{activeTenders.length}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Total Tenders</p>
               </div>
               <div className="text-center">

@@ -40,17 +40,17 @@ const Navbar = ({ searchTerm = "", onSearchChange, handleSearch, user }) => {
 
           {/* Search — desktop */}
           {onSearchChange && (
-            <div className="hidden md:flex flex-1 max-w-md relative">
+            <div className="hidden md:flex flex-1 max-w-md relative ml-6">
               <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               <input
-                type="search"
+                type="text"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search tenders…"
-                className="w-full bg-white/8 border border-white/10 text-white text-sm rounded-lg
-                           pl-9 pr-4 py-1.5 placeholder-slate-400
-                           focus:outline-none focus:bg-white/12 focus:border-blue-500 transition"
+                className="w-full bg-white/10 border border-white/10 text-white text-sm rounded-lg
+                           pl-9 pr-4 py-1.5 placeholder-slate-400 caret-white
+                           focus:outline-none focus:bg-white/15 focus:border-blue-500 transition"
               />
             </div>
           )}
@@ -116,13 +116,13 @@ const Navbar = ({ searchTerm = "", onSearchChange, handleSearch, user }) => {
             <div className="relative">
               <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               <input
-                type="search"
+                type="text"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search tenders…"
-                className="w-full bg-white/8 border border-white/10 text-white text-sm rounded-lg
-                           pl-9 pr-4 py-2 placeholder-slate-400
+                className="w-full bg-white/10 border border-white/10 text-white text-sm rounded-lg
+                           pl-9 pr-4 py-2 placeholder-slate-400 caret-white
                            focus:outline-none focus:border-blue-500 transition"
               />
             </div>

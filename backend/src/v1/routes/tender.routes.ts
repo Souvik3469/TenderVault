@@ -30,6 +30,7 @@ router.post('/',          authMiddleware, validate(CreateTenderDto), tc.createTe
 // GET /tenders/search?name=&page=&limit=
 router.get('/search',     authMiddleware, tc.searchTenders);
 router.get('/mine',       authMiddleware, tc.getMyTenders);
+router.get('/won',        authMiddleware, tc.getWonTenders);
 router.get('/categories', authMiddleware, tc.getAllCategories);
 
 // ─── Tender item ───────────────────────────────────────────────────────────────

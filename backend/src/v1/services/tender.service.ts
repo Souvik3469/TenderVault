@@ -210,6 +210,17 @@ export const getMyTenders = async (userId: string, role: string) => {
   });
 };
 
+export const getWonTenders = async (userId: string) => {
+  return prisma.tender.findMany({
+    where: { buyerId: userId, status: 'awarded' },
+    include: {
+      owner: { select: { id: true, name: true, profileImage: true } },
+      _count: { select: { bids: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+};
+
 export const getTenderById = async (tenderId: string) => {
   // Auto-expire if deadline has passed before returning details.
   await autoExpireTender(tenderId);

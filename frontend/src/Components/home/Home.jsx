@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   getallcategoryquery,
   getalltenderquery,
-  searchTendersQuery,
+  useAwardedTendersQuery,
 } from "../../api/tender";
 import Navbar from "../Navbar";
 import Loading from "../utils/Loading";
@@ -12,7 +12,6 @@ import PriceRangeFilter from "../utils/PriceRangeFilter";
 import { GetMyDetailsQuery } from "../../api/user";
 import ClosingSoon from "../utils/ClosingSoon";
 import QuickStats from "../utils/QuickStats";
-import { useDebounce } from "../../hooks/useDebounce";
 import {
   RiFileList3Line, RiCheckboxCircleLine, RiFilterLine,
   RiCloseLine, RiSearchLine,
@@ -46,11 +45,9 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const debouncedSearch = useDebounce(searchTerm, 800);
-
   const { data: categories = [], isLoading: catLoading } = getallcategoryquery();
-  const { data: tenders = [],    isLoading: tenderLoading } = getalltenderquery();
-  const { data: searchResults }  = searchTendersQuery(debouncedSearch);
+  const { data: openTenders = [],    isLoading: tenderLoading } = getalltenderquery();
+  const { data: awardedTenders = [], isLoading: awardedLoading } = useAwardedTendersQuery();
   const { data: user, isLoading: userLoading } = GetMyDetailsQuery();
 
   const handleCategoryChange = (idx) => {
@@ -71,7 +68,7 @@ const Home = () => {
     setSelectedPriceRanges([]);
   };
 
-  if (catLoading || tenderLoading || userLoading) {
+  if (catLoading || tenderLoading || awardedLoading || userLoading) {
     return (
       <div className="page-container">
         <Navbar user={null} />
@@ -80,21 +77,22 @@ const Home = () => {
     );
   }
 
-  const applyFilters = (list) =>
-    (list ?? []).filter((tender) => {
-      const cat = tender.category?.toLowerCase();
-      const isCat = !selectedCategories.length || selectedCategories.includes(cat);
-      const budget = tender.budget ?? tender.cost ?? 0;
-      const isPrice = !selectedPriceRanges.length || selectedPriceRanges.some((id) => {
-        const r = PRICE_RANGES.find((p) => p.id === id);
-        return r && budget >= r.minPrice && budget <= r.maxPrice;
-      });
-      const isStatus = tender.status === activeTab;
-      return isCat && isPrice && isStatus;
-    });
+  const tendersByTab = activeTab === TAB_AWARDED ? awardedTenders : openTenders;
 
-  const base = debouncedSearch && searchResults ? searchResults : tenders;
-  const filteredTenders = applyFilters(base);
+  const filteredTenders = (tendersByTab ?? []).filter((tender) => {
+    const cat = tender.category?.toLowerCase();
+    const isCat = !selectedCategories.length || selectedCategories.includes(cat);
+    const budget = tender.budget ?? tender.cost ?? 0;
+    const isPrice = !selectedPriceRanges.length || selectedPriceRanges.some((id) => {
+      const r = PRICE_RANGES.find((p) => p.id === id);
+      return r && budget >= r.minPrice && budget <= r.maxPrice;
+    });
+    const isSearch = !searchTerm.trim() ||
+      tender.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tender.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return isCat && isPrice && isSearch;
+  });
+
   const hasActiveFilters = selectedCategories.length > 0 || selectedPriceRanges.length > 0;
 
   const Filters = () => (
@@ -188,13 +186,11 @@ const Home = () => {
           </div>
 
           {/* Search hint when active */}
-          {debouncedSearch && (
+          {searchTerm.trim() && (
             <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 text-sm text-blue-700 flex items-center gap-2">
               <RiSearchLine className="w-4 h-4" />
-              Showing results for "<strong>{debouncedSearch}</strong>"
-              {searchResults && (
-                <span className="text-blue-500">— {searchResults.length} found</span>
-              )}
+              Showing results for "<strong>{searchTerm}</strong>"
+              <span className="text-blue-500">— {filteredTenders.length} found</span>
             </div>
           )}
 
@@ -214,8 +210,8 @@ const Home = () => {
 
         {/* ── Right Sidebar ─────────────────────────────────────── */}
         <aside className="hidden xl:flex flex-col w-56 flex-shrink-0 bg-white border-l border-slate-200 overflow-y-auto p-3 gap-3">
-          <QuickStats tenders={tenders} />
-          <ClosingSoon tenders={tenders} />
+          <QuickStats tenders={openTenders} />
+          <ClosingSoon tenders={openTenders} />
         </aside>
       </div>
 

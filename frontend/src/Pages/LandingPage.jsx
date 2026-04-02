@@ -46,10 +46,10 @@ const LandingNav = ({ user, menuOpen, setMenuOpen, changeLanguage }) => (
           ))}
         </nav>
 
-        <div className="hidden sm:flex items-center gap-3 ml-auto">
+        <div className="hidden sm:flex items-center gap-6 ml-auto">
           <select
             onChange={(e) => changeLanguage(e.target.value)}
-            className="bg-white/8 border border-white/10 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500"
+            className="bg-blue-600/20 border border-blue-500/40 text-blue-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 cursor-pointer hover:bg-blue-600/30 transition"
           >
             <option value="en">EN</option>
             <option value="hi">हि</option>
@@ -59,7 +59,7 @@ const LandingNav = ({ user, menuOpen, setMenuOpen, changeLanguage }) => (
           </select>
 
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-slate-300 text-sm">Hi, {user.name?.split(" ")[0]}</span>
               <Link to="/home"
                 className="btn-primary btn-sm flex items-center gap-1.5">
