@@ -27,7 +27,6 @@
 - [API Overview](#api-overview)
 - [User Roles](#user-roles)
 - [User Journeys](#user-journeys)
-- [Screenshots](#screenshots)
 - [Author](#author)
 - [License](#license)
 
@@ -170,15 +169,6 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# Email (Nodemailer)
-SMTP_SERVICE=gmail
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_MAIL=your@email.com
-SMTP_PASS=your-app-password
-
-# OpenAI (optional — AI features)
-OPENAI_API_KEY=sk-...
 ```
 
 ---
@@ -348,7 +338,7 @@ pending ──[company accepts]──► accepted
 | Company/admin answers a question   | Vendor (asker)          | `question_answered` |
 
 ---
-
+<!--
 ## Screenshots
 
 ### Landing Page
@@ -409,6 +399,7 @@ pending ──[company accepts]──► accepted
 > **Admin Dashboard** — `[Add screenshot: admin dashboard with stats grid and tender table]`
 
 ---
+-->
 
 ## Author
 
