@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TenderVault — Deep Dive (Architecture / Domain)</title>
+<style>
+  :root {
+    --bg: #0f1117; --bg-alt: #161925; --panel: #1a1e2b; --border: #2a2f40;
+    --text: #dbe1ee; --text-dim: #8b93a7; --accent: #7aa2ff; --accent2: #c792ea;
+    --good: #4fd1a5; --warn: #f0b74e; --bad: #ff7a85; --code-bg: #10131c;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --maxw: 980px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6; }
+  body { display:flex; min-height:100vh; }
+  nav.toc { position:sticky; top:0; align-self:flex-start; width:280px; min-width:280px; height:100vh;
+    overflow-y:auto; background:var(--bg-alt); border-right:1px solid var(--border); padding:20px 16px 60px; }
+  nav.toc .brand { font-weight:700; font-size:1.1rem; color:var(--accent); margin-bottom:4px; }
+  nav.toc .brand-sub { font-size:.78rem; color:var(--text-dim); margin-bottom:18px; }
+  nav.toc a { display:block; color:var(--text-dim); text-decoration:none; font-size:.84rem; padding:3px 0 3px 10px; border-left:2px solid transparent; }
+  nav.toc a:hover { color:var(--accent); border-left-color:var(--accent); }
+  nav.toc .lvl1 { font-weight:700; color:var(--text); margin-top:14px; font-size:.9rem; padding-left:0; border-left:none; }
+  nav.toc .lvl1:first-child { margin-top:0; }
+  main { flex:1; min-width:0; padding:40px clamp(20px,5vw,70px) 120px; }
+  .wrap { max-width:var(--maxw); margin:0 auto; }
+  h1 { font-size:2rem; color:#fff; margin-bottom:.2em; }
+  h1 .sub { display:block; font-size:1rem; font-weight:400; color:var(--text-dim); margin-top:6px; }
+  h2 { font-size:1.5rem; color:#fff; border-bottom:1px solid var(--border); padding-bottom:10px; margin-top:3.2em; scroll-margin-top:20px; }
+  h3 { font-size:1.18rem; color:var(--accent); margin-top:2.4em; scroll-margin-top:20px; }
+  h4 { font-size:1rem; color:var(--accent2); margin-top:1.8em; margin-bottom:.5em; }
+  a { color:var(--accent); }
+  code { font-family:var(--mono); background:var(--code-bg); padding:.1em .4em; border-radius:4px; font-size:.88em; color:#ffd479; border:1px solid var(--border); }
+  pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; overflow-x:auto; font-size:.84rem; }
+  pre code { border:none; background:none; padding:0; color:#cdd6e4; }
+  ul, ol { padding-left:1.4em; } li { margin-bottom:.35em; }
+  table { width:100%; border-collapse:collapse; margin:1em 0 1.6em; font-size:.9rem; }
+  th, td { border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--panel); color:#fff; }
+  .callout { border-left:3px solid var(--accent); background:var(--panel); padding:12px 16px; margin:1.4em 0; border-radius:0 6px 6px 0; }
+  .callout.warn { border-left-color:var(--warn); }
+  .callout.bad { border-left-color:var(--bad); }
+  .callout.good { border-left-color:var(--good); }
+  .callout .lbl { display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin-bottom:6px; }
+  .flow { font-family:var(--mono); font-size:.82rem; background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:16px; white-space:pre; overflow-x:auto; color:#cdd6e4; }
+  @media (max-width: 900px) { body { display:block; } nav.toc { position:static; width:auto; min-width:0; height:auto; border-right:none; border-bottom:1px solid var(--border); } }
+</style>
+</head>
+<body>
+<nav class="toc">
+  <div class="brand">TenderVault</div>
+  <div class="brand-sub">Architecture &amp; Domain</div>
+  <a class="lvl1" href="#overview">0. Overview</a>
+  <a href="#layers">Layering</a>
+  <a href="#actors">Three actors</a>
+  <a class="lvl1" href="#domain">1. Domain Model</a>
+  <a class="lvl1" href="#lifecycle">2. Tender Lifecycle</a>
+  <a href="#transitions">Guarded transitions</a>
+  <a href="#expiry">Deadline expiry</a>
+  <a class="lvl1" href="#bidding">3. Bidding</a>
+  <a href="#accept">Award &amp; auto-reject</a>
+  <a class="lvl1" href="#qa">4. Q&amp;A</a>
+  <a class="lvl1" href="#notify">5. Notifications</a>
+  <a class="lvl1" href="#auth">6. Auth</a>
+  <a class="lvl1" href="#different">7. What I'd Do Differently</a>
+</nav>
+<main><div class="wrap">
+
+<h1>TenderVault — Deep Dive
+  <span class="sub">A multi-role B2B tender platform: companies publish tenders, vendors bid, one bid wins</span>
+</h1>
+
+<div class="callout warn">
+  <span class="lbl">Two documents, two vintages</span>
+  The <code>Docs/</code> folder at the repository root (SRS, SPMP, COCOMO, Gantt, DFDs, test-case
+  workbook) is <strong>academic coursework</strong> describing an earlier version of this system.
+  It does not match the code. This document describes what is actually in the repository.
+</div>
+
+<h2 id="overview">0. Overview</h2>
+
+<p>Procurement, modelled properly. A <strong>company</strong> publishes a tender with a category, a
+minimum acceptable amount, and a deadline. <strong>Vendors</strong> discover it, ask clarifying
+questions, and submit bids. The company awards exactly one bid; every other bid is rejected in the
+same atomic operation. An <strong>admin</strong> can review and rate tenders for quality.</p>
+
+<p>The interesting part is not CRUD — it's that a tender is a <em>state machine with money
+attached</em>, and awarding is a transaction that must not half-happen.</p>
+
+<h3 id="layers">Layering</h3>
+<div class="flow">backend/src/
+├── app.ts · server.ts
+├── v1/
+│   ├── routes/        auth · user · tender · admin · notification
+│   ├── controllers/   thin — parse, delegate, respond
+│   ├── services/      all business logic (tender.service.ts is 567 lines of it)
+│   ├── dtos/          request shapes
+│   ├── middlewares/   auth · validate · upload · error
+│   └── config/env.ts
+├── utils/             AppError · response · notify
+└── prisma/            6 models</div>
+
+<p>Controllers are 24–270 lines; services carry the logic. <code>error.middleware</code> catches
+<code>AppError</code> centrally, so services throw <code>new AppError('...', 403)</code> and never
+touch the response object. That separation holds consistently across the codebase.</p>
+
+<h3 id="actors">Three actors</h3>
+<p><code>User.role</code> — <code>vendor</code> · <code>company</code> · <code>admin</code>. One
+`User` model with three relations to `Tender`: <code>ownedTenders</code> (as company),
+<code>boughtTenders</code> (as winning vendor), <code>evaluatedTenders</code> (as reviewing admin).</p>
+
+<h2 id="domain">1. Domain Model</h2>
+
+<div class="flow">User ──owns──< Tender ──< Bid >── User (vendor)
+  │                │
+  │                ├──< Question ──< Answer
+  │                ├── buyer     → User   (the winning vendor)
+  │                └── evaluator → User   (reviewing admin)
+  └──< Notification</div>
+
+<table>
+<tr><th>Model</th><th>Carries</th></tr>
+<tr><td><code>Tender</code></td><td><code>status</code>, <code>category</code>, <code>cost</code> (the <em>minimum acceptable bid</em>, despite the name), <code>deadline</code>, <code>rating</code> (admin 1–5)</td></tr>
+<tr><td><code>Bid</code></td><td><code>amount</code>, <code>status</code>, <code>message</code> (the vendor's proposal), plus denormalised <code>vendorName</code> / <code>location</code></td></tr>
+<tr><td><code>Question</code> / <code>Answer</code></td><td>Public clarification thread per tender</td></tr>
+<tr><td><code>Notification</code></td><td><code>body</code>, <code>type</code>, <code>read</code></td></tr>
+</table>
+
+<div class="callout warn">
+  <span class="lbl">Modelled as strings, not enums</span>
+  Every status and role in this schema is a <code>String</code> with the legal values written in a
+  trailing comment. The lifecycle guards below therefore compare string literals, with no
+  compile-time protection against a typo. Prisma supports enums on MongoDB; using them would turn
+  this state machine from a convention into a type. It is the single highest-value change available
+  to this codebase.
+</div>
+
+<h2 id="lifecycle">2. Tender Lifecycle</h2>
+
+<div class="flow">draft ──publish──▶ open ──close──▶ closed
+                    │                  │
+                    │  (deadline)      │
+                    └──────────────────┘
+                    │                  │
+                    └── award ────▶ awarded   (terminal)
+                    │
+                 cancel ──▶ cancelled   (blocked once awarded)</div>
+
+<h3 id="transitions">Transitions are guarded, not assumed</h3>
+
+<p>Each transition is a <strong>named operation</strong> rather than a generic
+<code>updateStatus(status)</code> — which is what makes preconditions enforceable at all:</p>
+
+<pre><code>export const publishTender = async (tenderId, userId) => {
+  const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
+  if (!tender) throw new AppError('Tender not found.', 404);
+  if (tender.companyId !== userId) throw new AppError('Unauthorized.', 403);
+  if (tender.status !== 'draft')
+    throw new AppError('Only draft tenders can be published.', 400);
+  ...
+}</code></pre>
+
+<p>Same shape for <code>closeTender</code> (<code>open</code> only) and <code>cancelTender</code>
+(anything but <code>awarded</code>). Ownership is checked before state, and both before any write.</p>
+
+<p>The limitation is that the machine exists only as the union of those scattered guards — there is
+no single place to read the legal transitions, and adding a state means finding every one of them.</p>
+
+<h3 id="expiry">Deadline expiry</h3>
+<p><code>autoExpireTender</code> runs opportunistically at the start of read paths: if a tender is
+<code>open</code> and past its <code>deadline</code>, it flips to <code>closed</code> and notifies
+vendors with pending bids.</p>
+
+<p>Lazy expiry avoids needing a scheduler, but it means a tender nobody looks at stays <code>open</code>
+past its deadline, and the unlucky first reader pays for the write.</p>
+
+<h2 id="bidding">3. Bidding</h2>
+
+<p>Vendors submit a <code>Bid</code> carrying an <code>amount</code> and a <code>message</code> —
+the proposal, not just a number, which is what makes this procurement rather than an auction.
+Bids move <code>pending → accepted | rejected | withdrawn</code>.</p>
+
+<h3 id="accept">Award &amp; auto-reject — the function worth reading</h3>
+
+<pre><code>// 1. authorise and validate state
+if (bid.tender.companyId !== userId) throw new AppError('...', 403);
+if (bid.status !== 'pending')        throw new AppError('Only pending bids can be accepted.', 400);
+if (!['open','closed'].includes(bid.tender.status ?? ''))
+                                     throw new AppError('...', 400);
+
+// 2. capture who to notify BEFORE the transaction changes their rows
+const othersToReject = await prisma.bid.findMany({
+  where: { tenderId: bid.tenderId, id: { not: bidId }, status: 'pending' },
+  select: { vendorId: true },
+});
+
+// 3. one atomic award
+await prisma.$transaction([
+  prisma.bid.update({    where: { id: bidId }, data: { status: 'accepted' } }),
+  prisma.tender.update({ where: { id: bid.tenderId },
+                         data: { status: 'awarded', buyerId: bid.vendorId } }),
+  prisma.bid.updateMany({ where: { tenderId: bid.tenderId, id: { not: bidId }, status: 'pending' },
+                          data: { status: 'rejected' } }),
+]);
+
+// 4. notify only after it commits</code></pre>
+
+<div class="callout good">
+  <span class="lbl">Three things this gets right</span>
+  <strong>Atomicity</strong> — awarding, recording the buyer, and rejecting every other bid either
+  all happen or none do. A partial award would leave losing bids pending against a closed tender.<br>
+  <strong>Pre-capture</strong> — the losing vendors are read <em>before</em> the transaction sets
+  them to <code>rejected</code>. Reading after would return an empty set and nobody would be told.
+  That's a subtle ordering bug avoided deliberately.<br>
+  <strong>Side effects after commit</strong> — notifications fire once the transaction has
+  succeeded, so nobody is told they lost a tender that was never awarded.
+</div>
+
+<p>Worth noting that two sibling functions — <code>closeTender</code> and
+<code>cancelTender</code> — notify <em>before</em> their update commits. The correct pattern is in
+the same file; it just isn't applied uniformly.</p>
+
+<h2 id="qa">4. Q&amp;A</h2>
+<p><code>Question</code> → <code>Answer</code>, scoped to a tender, vendor-asked and company-answered
+(<code>askQuestion</code> rejects non-vendors with a 403). Public clarification threads are a real
+feature of procurement — a bidder's ambiguity is usually every bidder's ambiguity — and modelling
+them is what separates this from a generic CRUD marketplace.</p>
+
+<h2 id="notify">5. Notifications</h2>
+<pre><code>export const notify = (userId: string, body: string, type: string): void => {
+  prisma.notification.create({ data: { userId, body, type, read: false } })
+    .catch((err) => console.error('[notify]', err));
+};</code></pre>
+<p>Deliberately never awaited — documented as such — so notification writes never block or fail a
+request. The trade is explicit: delivery is best-effort, and a failure is a log line nobody reads.</p>
+
+<h2 id="auth">6. Auth</h2>
+<p>JWT via <strong><code>jose</code></strong>, verified in <code>auth.middleware.ts</code>, with a
+proper claims payload (<code>payload.id</code>) rather than a bare signed string. The user is loaded
+per request and attached to <code>req.user</code> through a typed
+<code>express.d.ts</code> augmentation.</p>
+
+<h2 id="different">7. What I'd Do Differently</h2>
+
+<ol>
+<li><strong>Make every status a Prisma enum.</strong> `draft | open | closed | awarded | cancelled`,
+`pending | accepted | rejected | withdrawn`, `vendor | company | admin`. The guards already exist and
+are correct; enums would make them type-checked instead of string-compared.</li>
+
+<li><strong>Fix the cascade on <code>evaluator</code> and <code>buyer</code>.</strong> Both are
+<code>onDelete: Cascade</code>, so deleting a reviewing admin or a winning vendor deletes the
+tender — and every bid, question and answer under it. Both fields are already nullable;
+<code>SetNull</code> is the correct behaviour and it is a one-word change.</li>
+
+<li><strong>Declare a transition table.</strong> The per-function guards are individually right but
+collectively invisible. One map, one validator.</li>
+
+<li><strong>Index the schema.</strong> Zero indexes today. Bids-by-tender-and-status and
+notifications-by-user-and-read are both hot.</li>
+
+<li><strong>Apply the <code>acceptBid</code> ordering everywhere.</strong> Capture, transact, then
+notify — <code>closeTender</code> and <code>cancelTender</code> notify first.</li>
+
+<li><strong>Move expiry to a scheduled job</strong> instead of a read-path side effect.</li>
+
+<li><strong>Rename <code>Tender.cost</code></strong> to <code>minimumBid</code>. It is a floor, not a
+price, and a misleading name on a money field is a bug waiting for a reader.</li>
+</ol>
+
+<div class="callout">
+  <span class="lbl">Calibration</span>
+  This is the most disciplined backend of the set — real layering, thin controllers, centralised
+  errors, transitions that check their preconditions, and an award path that gets atomicity,
+  ordering, and side-effect placement all correct. The weaknesses are concentrated in the
+  <strong>schema</strong>, not the logic: statuses as strings, cascades that delete too much, and no
+  indexes. That's an unusual and rather encouraging shape for a defect profile — the hard part was
+  done well and the declarative part was rushed.
+</div>
+
+</div></main>
+</body>
+</html>

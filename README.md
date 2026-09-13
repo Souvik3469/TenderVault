@@ -16,6 +16,20 @@
 
 ---
 
+## Documentation
+
+| Doc | What's in it |
+|---|---|
+| [`architecture/deep-dive.html`](architecture/deep-dive.html) | Architecture and domain walkthrough — the layering, the tender state machine and its guarded transitions, the atomic award-and-auto-reject path, Q&A, notifications, and a "what I'd do differently" section. Open in a browser. |
+
+> **A note on the `Docs/` folder.** `Docs/` (SRS, SPMP, COCOMO estimate, Function Point metrics,
+> Gantt chart, DFDs, test-case workbook) is **academic coursework** produced for a university
+> software-engineering module. It describes an earlier version of this system and no longer matches
+> the code — the schema, the lifecycle, and the API have all moved on since. It is kept for
+> historical interest. For how the system actually works, read `architecture/deep-dive.html`.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
