@@ -10,7 +10,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Live Demo](https://tender-vault-frontend.vercel.app) · [Report a Bug](https://github.com/Souvik3469/TenderVault/issues) · [Request a Feature](https://github.com/Souvik3469/TenderVault/issues)
+[Live Demo](https://tendervault.vercel.app) · [Report a Bug](https://github.com/Souvik3469/TenderVault/issues) · [Request a Feature](https://github.com/Souvik3469/TenderVault/issues)
 
 </div>
 
