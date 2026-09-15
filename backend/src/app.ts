@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { env } from './v1/config/env';
 import routes from './v1/routes';
 import { errorMiddleware } from './v1/middlewares/error.middleware';
+import { legacyFields } from './v1/middlewares/legacyFields.middleware';
 
 const app = express();
 
@@ -30,6 +31,8 @@ app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan('dev'));
+// Mirrors minimumBid -> cost on outgoing JSON for pre-rename clients. See the middleware.
+app.use(legacyFields);
 
 // Health check
 app.get('/', (_req, res) => {

@@ -63,7 +63,7 @@ export const getMyBids = async (userId: string, role: string) => {
           id: true,
           title: true,
           category: true,
-          cost: true,
+          minimumBid: true,
           status: true,
           companyName: true,
           imageUrl: true,

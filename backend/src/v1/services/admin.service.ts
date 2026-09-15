@@ -1,5 +1,6 @@
 import prisma from '../../prisma';
 import { AppError } from '../../utils/errors';
+import { parseTenderStatus } from '../domain/tender-state';
 
 export const getStats = async (role: string) => {
   if (role !== 'admin') throw new AppError('Admin access required.', 403);
@@ -34,8 +35,12 @@ export const getAllTendersAdmin = async (
 ) => {
   if (role !== 'admin') throw new AppError('Admin access required.', 403);
 
+  const parsedStatus = parseTenderStatus(status);
+  // An unrecognised status filter matches nothing, as it did before the enum.
+  if (parsedStatus === null) return { tenders: [], total: 0, page, limit, pages: 0 };
+
   const where = {
-    ...(status ? { status } : {}),
+    ...(parsedStatus ? { status: parsedStatus } : {}),
     ...(category ? { category: { contains: category, mode: 'insensitive' as const } } : {}),
   };
   const skip = (page - 1) * limit;

@@ -1,5 +1,11 @@
 import prisma from '../../prisma';
+import { TenderStatus, BidStatus } from '@prisma/client';
 import { AppError } from '../../utils/errors';
+import {
+  assertTenderTransition,
+  assertBidTransition,
+  parseTenderStatus,
+} from '../domain/tender-state';
 import { notify } from '../../utils/notify';
 import {
   CreateTenderInput,
@@ -25,14 +31,14 @@ const safeVendor = <T extends { password?: string | null }>(user: T) => {
 const autoExpireTender = async (tenderId: string) => {
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) return null;
-  if (tender.status === 'open' && tender.deadline && new Date() > tender.deadline) {
+  if (tender.status === TenderStatus.open && tender.deadline && new Date() > tender.deadline) {
     const expired = await prisma.tender.update({
       where: { id: tenderId },
-      data: { status: 'closed' },
+      data: { status: TenderStatus.closed },
     });
     // Notify all vendors with pending bids
     const pending = await prisma.bid.findMany({
-      where: { tenderId, status: 'pending' },
+      where: { tenderId, status: BidStatus.pending },
       select: { vendorId: true },
     });
     pending.forEach((b) =>
@@ -48,19 +54,19 @@ const autoExpireTender = async (tenderId: string) => {
  */
 const autoExpireAll = async () => {
   const overdue = await prisma.tender.findMany({
-    where: { status: 'open', deadline: { lt: new Date() } },
+    where: { status: TenderStatus.open, deadline: { lt: new Date() } },
     select: { id: true, title: true },
   });
   if (overdue.length === 0) return;
 
   await prisma.tender.updateMany({
     where: { id: { in: overdue.map((t) => t.id) } },
-    data: { status: 'closed' },
+    data: { status: TenderStatus.closed },
   });
 
   for (const t of overdue) {
     const pending = await prisma.bid.findMany({
-      where: { tenderId: t.id, status: 'pending' },
+      where: { tenderId: t.id, status: BidStatus.pending },
       select: { vendorId: true },
     });
     pending.forEach((b) =>
@@ -84,10 +90,10 @@ export const createTender = async (
       title: input.title,
       description: input.description,
       category: input.category,
-      cost: input.cost,
+      minimumBid: input.minimumBid,
       imageUrl: input.imageUrl,
       deadline: input.deadline ? new Date(input.deadline) : undefined,
-      status: 'draft',
+      status: TenderStatus.draft,
       companyName: userName,
       owner: { connect: { id: userId } },
     },
@@ -98,47 +104,56 @@ export const publishTender = async (tenderId: string, userId: string) => {
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.companyId !== userId) throw new AppError('Unauthorized.', 403);
-  if (tender.status !== 'draft')
-    throw new AppError('Only draft tenders can be published.', 400);
+  assertTenderTransition(tender.status, TenderStatus.open);
 
-  return prisma.tender.update({ where: { id: tenderId }, data: { status: 'open' } });
+  return prisma.tender.update({ where: { id: tenderId }, data: { status: TenderStatus.open } });
 };
 
 export const closeTender = async (tenderId: string, userId: string) => {
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.companyId !== userId) throw new AppError('Unauthorized.', 403);
-  if (tender.status !== 'open')
-    throw new AppError('Only open tenders can be closed.', 400);
+  assertTenderTransition(tender.status, TenderStatus.closed);
 
   // Notify vendors with pending bids
   const pending = await prisma.bid.findMany({
-    where: { tenderId, status: 'pending' },
+    where: { tenderId, status: BidStatus.pending },
     select: { vendorId: true },
   });
+  const updated = await prisma.tender.update({
+    where: { id: tenderId },
+    data: { status: TenderStatus.closed },
+  });
+
+  // Notify only after the status change has committed.
   pending.forEach((b) =>
     notify(b.vendorId, `The tender "${tender.title}" has been closed for submissions.`, 'tender_closed'),
   );
 
-  return prisma.tender.update({ where: { id: tenderId }, data: { status: 'closed' } });
+  return updated;
 };
 
 export const cancelTender = async (tenderId: string, userId: string) => {
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.companyId !== userId) throw new AppError('Unauthorized.', 403);
-  if (tender.status === 'awarded')
-    throw new AppError('Awarded tenders cannot be cancelled.', 400);
+  assertTenderTransition(tender.status, TenderStatus.cancelled);
 
   const pending = await prisma.bid.findMany({
-    where: { tenderId, status: 'pending' },
+    where: { tenderId, status: BidStatus.pending },
     select: { vendorId: true },
   });
+  const updated = await prisma.tender.update({
+    where: { id: tenderId },
+    data: { status: TenderStatus.cancelled },
+  });
+
+  // Notify only after the status change has committed.
   pending.forEach((b) =>
     notify(b.vendorId, `The tender "${tender.title}" has been cancelled.`, 'tender_cancelled'),
   );
 
-  return prisma.tender.update({ where: { id: tenderId }, data: { status: 'cancelled' } });
+  return updated;
 };
 
 // ─── Tender Queries ───────────────────────────────────────────────────────────
@@ -163,7 +178,11 @@ export const getAllTenders = async ({
 
   // Vendors and companies browsing the marketplace default to open tenders.
   // Admins see everything unless they explicitly filter.
-  const resolvedStatus = status !== undefined ? status : role === 'admin' ? undefined : 'open';
+  const parsed = parseTenderStatus(status);
+  // An unrecognised status filter matches nothing, as it did before the enum.
+  if (parsed === null) return { tenders: [], total: 0, page, limit, pages: 0 };
+  const resolvedStatus =
+    parsed !== undefined ? parsed : role === 'admin' ? undefined : TenderStatus.open;
 
   const where = {
     ...(resolvedStatus ? { status: resolvedStatus } : {}),
@@ -190,7 +209,7 @@ export const getAllTenders = async ({
 
 export const searchTenders = async (name: string, page = 1, limit = 20) => {
   const skip = (page - 1) * limit;
-  const where = { title: { contains: name, mode: 'insensitive' as const }, status: 'open' };
+  const where = { title: { contains: name, mode: 'insensitive' as const }, status: TenderStatus.open };
 
   const [tenders, total] = await Promise.all([
     prisma.tender.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
@@ -212,7 +231,7 @@ export const getMyTenders = async (userId: string, role: string) => {
 
 export const getWonTenders = async (userId: string) => {
   return prisma.tender.findMany({
-    where: { buyerId: userId, status: 'awarded' },
+    where: { buyerId: userId, status: TenderStatus.awarded },
     include: {
       owner: { select: { id: true, name: true, profileImage: true } },
       _count: { select: { bids: true } },
@@ -251,10 +270,10 @@ export const getTenderStats = async (tenderId: string, userId: string) => {
   return {
     total: bids.length,
     byStatus: {
-      pending: bids.filter((b) => b.status === 'pending').length,
-      accepted: bids.filter((b) => b.status === 'accepted').length,
-      rejected: bids.filter((b) => b.status === 'rejected').length,
-      withdrawn: bids.filter((b) => b.status === 'withdrawn').length,
+      pending: bids.filter((b) => b.status === BidStatus.pending).length,
+      accepted: bids.filter((b) => b.status === BidStatus.accepted).length,
+      rejected: bids.filter((b) => b.status === BidStatus.rejected).length,
+      withdrawn: bids.filter((b) => b.status === BidStatus.withdrawn).length,
     },
     amounts: amounts.length
       ? {
@@ -271,7 +290,7 @@ export const deleteTender = async (tenderId: string, userId: string) => {
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.companyId !== userId)
     throw new AppError('You do not have permission to delete this tender.', 403);
-  if (tender.status === 'awarded')
+  if (tender.status === TenderStatus.awarded)
     throw new AppError('Awarded tenders cannot be deleted.', 400);
 
   await prisma.tender.delete({ where: { id: tenderId } });
@@ -282,7 +301,10 @@ export const updateTender = async (tenderId: string, userId: string, input: Upda
   if (!tender) throw new AppError('Tender not found.', 404);
   if (tender.companyId !== userId)
     throw new AppError('You do not have permission to update this tender.', 403);
-  if (['awarded', 'cancelled'].includes(tender.status ?? ''))
+  if (
+    tender.status === TenderStatus.awarded ||
+    tender.status === TenderStatus.cancelled
+  )
     throw new AppError('Awarded or cancelled tenders cannot be updated.', 400);
 
   return prisma.tender.update({
@@ -341,9 +363,9 @@ export const createBid = async (
 
   const tender = activeTender;
   if (!tender) throw new AppError('Tender not found.', 404);
-  if (tender.status !== 'open') throw new AppError('This tender is not accepting bids.', 400);
-  if (input.amount < tender.cost)
-    throw new AppError(`Bid amount must be at least ₹${tender.cost} (the tender reserve price).`, 400);
+  if (tender.status !== TenderStatus.open) throw new AppError('This tender is not accepting bids.', 400);
+  if (input.amount < tender.minimumBid)
+    throw new AppError(`Bid amount must be at least ₹${tender.minimumBid} (the tender reserve price).`, 400);
 
   const existing = await prisma.bid.findFirst({ where: { tenderId, vendorId } });
   if (existing) throw new AppError('You have already submitted a bid for this tender.', 409);
@@ -352,7 +374,7 @@ export const createBid = async (
     data: {
       amount: input.amount,
       message: input.message,
-      status: 'pending',
+      status: BidStatus.pending,
       vendorName: vendor?.name ?? null,
       tender: { connect: { id: tenderId } },
       company: { connect: { id: tender.companyId } },
@@ -418,18 +440,16 @@ export const withdrawBid = async (bidId: string, userId: string) => {
   const bid = await prisma.bid.findUnique({ where: { id: bidId } });
   if (!bid) throw new AppError('Bid not found.', 404);
   if (bid.vendorId !== userId) throw new AppError('Unauthorized.', 403);
-  if (bid.status !== 'pending')
-    throw new AppError('Only pending bids can be withdrawn.', 400);
+  assertBidTransition(bid.status, BidStatus.withdrawn);
 
-  return prisma.bid.update({ where: { id: bidId }, data: { status: 'withdrawn' } });
+  return prisma.bid.update({ where: { id: bidId }, data: { status: BidStatus.withdrawn } });
 };
 
 export const deleteBid = async (bidId: string, userId: string) => {
   const bid = await prisma.bid.findUnique({ where: { id: bidId } });
   if (!bid) throw new AppError('Bid not found.', 404);
   if (bid.vendorId !== userId) throw new AppError('Unauthorized.', 403);
-  if (bid.status !== 'pending')
-    throw new AppError('Only pending bids can be deleted.', 400);
+  assertBidTransition(bid.status, BidStatus.withdrawn); // deletion follows the same rule as withdrawal
 
   await prisma.bid.delete({ where: { id: bidId } });
 };
@@ -439,25 +459,24 @@ export const acceptBid = async (bidId: string, userId: string) => {
   if (!bid) throw new AppError('Bid not found.', 404);
   if (bid.tender.companyId !== userId)
     throw new AppError('You do not have permission to accept this bid.', 403);
-  if (bid.status !== 'pending') throw new AppError('Only pending bids can be accepted.', 400);
-  if (!['open', 'closed'].includes(bid.tender.status ?? ''))
-    throw new AppError('Bids can only be accepted on open or closed tenders.', 400);
+  assertBidTransition(bid.status, BidStatus.accepted);
+  assertTenderTransition(bid.tender.status, TenderStatus.awarded);
 
   // Capture vendors to notify before transaction mutates their statuses
   const othersToReject = await prisma.bid.findMany({
-    where: { tenderId: bid.tenderId, id: { not: bidId }, status: 'pending' },
+    where: { tenderId: bid.tenderId, id: { not: bidId }, status: BidStatus.pending },
     select: { vendorId: true },
   });
 
   const [acceptedBid, updatedTender] = await prisma.$transaction([
-    prisma.bid.update({ where: { id: bidId }, data: { status: 'accepted' } }),
+    prisma.bid.update({ where: { id: bidId }, data: { status: BidStatus.accepted } }),
     prisma.tender.update({
       where: { id: bid.tenderId },
-      data: { status: 'awarded', buyerId: bid.vendorId },
+      data: { status: TenderStatus.awarded, buyerId: bid.vendorId },
     }),
     prisma.bid.updateMany({
-      where: { tenderId: bid.tenderId, id: { not: bidId }, status: 'pending' },
-      data: { status: 'rejected' },
+      where: { tenderId: bid.tenderId, id: { not: bidId }, status: BidStatus.pending },
+      data: { status: BidStatus.rejected },
     }),
   ]);
 
@@ -479,9 +498,9 @@ export const rejectBid = async (bidId: string, userId: string) => {
   if (!bid) throw new AppError('Bid not found.', 404);
   if (bid.tender.companyId !== userId)
     throw new AppError('You do not have permission to reject this bid.', 403);
-  if (bid.status !== 'pending') throw new AppError('Only pending bids can be rejected.', 400);
+  assertBidTransition(bid.status, BidStatus.rejected);
 
-  const updated = await prisma.bid.update({ where: { id: bidId }, data: { status: 'rejected' } });
+  const updated = await prisma.bid.update({ where: { id: bidId }, data: { status: BidStatus.rejected } });
 
   notify(
     bid.vendorId,
@@ -500,7 +519,7 @@ export const askQuestion = async (tenderId: string, userId: string, role: string
   await autoExpireTender(tenderId);
   const tender = await prisma.tender.findUnique({ where: { id: tenderId } });
   if (!tender) throw new AppError('Tender not found.', 404);
-  if (tender.status !== 'open') throw new AppError('Questions can only be posted on open tenders.', 400);
+  if (tender.status !== TenderStatus.open) throw new AppError('Questions can only be posted on open tenders.', 400);
 
   const question = await prisma.question.create({
     data: {
