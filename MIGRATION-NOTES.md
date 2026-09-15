@@ -3,7 +3,7 @@
 Changes to the schema and services, and what each one means for **existing data and existing
 clients**. Read this before deploying.
 
-**Compatible unless marked otherwise.** Three items need action; they're marked ⚠️.
+**Compatible unless marked otherwise.** One item needed a data check; it has been done and cleared (§2).
 
 ---
 
@@ -68,24 +68,26 @@ The name described the field's type, not its meaning — it is the *minimum acce
 `src/v1/middlewares/legacyFields.middleware.ts` and its `app.ts` mount, and drop the `cost` alias
 from the DTOs.
 
-### 2. `User.email` and `User.password` are now required ⚠️ **verify before deploying**
-Both were `String?`. Every user is created through `registerUser`, which always sets both, and
-there is no OAuth path — so this matches reality for anything the app created.
+### 2. ✅ `User.email` and `User.password` are now required — verified clear
+Both were `String?`. Every user is created through `registerUser`, which always sets both, and there
+is no OAuth path — so this matched reality for anything the application created.
 
-**But Prisma throws when reading a document where a required field is missing or null.** If the
-database has rows from seeding, manual insertion, or an earlier schema, reads of those users will
-fail.
+The risk was pre-existing rows from seeding or manual insertion: **Prisma throws when reading a
+document where a required field is missing or null.**
 
-**Check first:**
+**Confirmed 2026-09-15: every user in the database has both fields.** No backfill needed, no action
+before deploying.
+
+Keeping the check here because it applies again if an older dump is ever restored:
+
 ```js
 // mongosh
 db.User.countDocuments({ $or: [
   { email:    { $in: [null, ""] } }, { email:    { $exists: false } },
   { password: { $in: [null, ""] } }, { password: { $exists: false } },
 ] })
+// 0 = safe
 ```
-Zero → safe. Non-zero → backfill or delete those rows before deploying, or revert these two fields
-to optional.
 
 ### 3. An unrecognised `?status=` filter now returns an empty page
 Before, an unknown status string went to the database and matched nothing. With an enum it can't be
@@ -105,7 +107,7 @@ npx prisma db push      # creates the indexes; MongoDB has no migration files
 npm run build
 ```
 
-Run the §2 check **before** `db push`.
+No pre-deploy data check outstanding — §2 was verified clear on 2026-09-15.
 
 ## Verified
 
