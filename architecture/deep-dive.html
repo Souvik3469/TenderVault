@@ -64,7 +64,7 @@
   <a class="lvl1" href="#qa">4. Q&amp;A</a>
   <a class="lvl1" href="#notify">5. Notifications</a>
   <a class="lvl1" href="#auth">6. Auth</a>
-  <a class="lvl1" href="#different">7. What I'd Do Differently</a>
+  <a class="lvl1" href="#different">7. What Changed / Still Open</a>
 </nav>
 <main><div class="wrap">
 
@@ -122,19 +122,24 @@ touch the response object. That separation holds consistently across the codebas
 
 <table>
 <tr><th>Model</th><th>Carries</th></tr>
-<tr><td><code>Tender</code></td><td><code>status</code>, <code>category</code>, <code>cost</code> (the <em>minimum acceptable bid</em>, despite the name), <code>deadline</code>, <code>rating</code> (admin 1–5)</td></tr>
+<tr><td><code>Tender</code></td><td><code>status</code>, <code>category</code>, <code>minimumBid</code> (renamed from <code>cost</code>; <code>@map</code> keeps the stored field name), <code>deadline</code>, <code>rating</code> (admin 1–5)</td></tr>
 <tr><td><code>Bid</code></td><td><code>amount</code>, <code>status</code>, <code>message</code> (the vendor's proposal), plus denormalised <code>vendorName</code> / <code>location</code></td></tr>
 <tr><td><code>Question</code> / <code>Answer</code></td><td>Public clarification thread per tender</td></tr>
 <tr><td><code>Notification</code></td><td><code>body</code>, <code>type</code>, <code>read</code></td></tr>
 </table>
 
-<div class="callout warn">
-  <span class="lbl">Modelled as strings, not enums</span>
-  Every status and role in this schema is a <code>String</code> with the legal values written in a
-  trailing comment. The lifecycle guards below therefore compare string literals, with no
-  compile-time protection against a typo. Prisma supports enums on MongoDB; using them would turn
-  this state machine from a convention into a type. It is the single highest-value change available
-  to this codebase.
+<div class="callout good">
+  <span class="lbl">Now enums (changed 2026-09-15)</span>
+  Every status and role was originally a <code>String</code> with the legal values in a trailing
+  comment, so the guards compared string literals with no compile-time protection against a typo.
+  They are now Prisma enums — <code>UserRole</code>, <code>TenderStatus</code>,
+  <code>BidStatus</code>, <code>NotificationType</code> — with member names identical to the
+  previously stored strings, so documents and API payloads are unchanged.
+  <br><br>
+  Worth noting what that surfaced: converting them produced <strong>six compile errors that had
+  been latent</strong> — untyped status filters flowing into queries in three places, an untyped
+  notification type, and a stale field in a <code>select</code>. None were visible while the values
+  were strings.
 </div>
 
 <h2 id="lifecycle">2. Tender Lifecycle</h2>
@@ -165,8 +170,22 @@ touch the response object. That separation holds consistently across the codebas
 <p>Same shape for <code>closeTender</code> (<code>open</code> only) and <code>cancelTender</code>
 (anything but <code>awarded</code>). Ownership is checked before state, and both before any write.</p>
 
-<p>The limitation is that the machine exists only as the union of those scattered guards — there is
-no single place to read the legal transitions, and adding a state means finding every one of them.</p>
+<p>Originally the machine existed only as the union of those scattered guards — correct, but with no
+single place to read the legal transitions, so adding a state meant finding every one of them.
+<strong>As of 2026-09-15 both machines are declared once</strong> in
+<code>src/v1/domain/tender-state.ts</code>, and the five guards call
+<code>assertTenderTransition</code> / <code>assertBidTransition</code> against that table:</p>
+
+<pre><code>export const TENDER_TRANSITIONS = {
+  draft:     [open, cancelled],
+  open:      [closed, awarded, cancelled],
+  closed:    [awarded, cancelled],
+  awarded:   [],   // terminal
+  cancelled: [],   // terminal
+}</code></pre>
+
+<p>Behaviour is the same or stricter, never looser; the error messages now name the allowed
+transitions.</p>
 
 <h3 id="expiry">Deadline expiry</h3>
 <p><code>autoExpireTender</code> runs opportunistically at the start of read paths: if a tender is
@@ -218,9 +237,9 @@ await prisma.$transaction([
   succeeded, so nobody is told they lost a tender that was never awarded.
 </div>
 
-<p>Worth noting that two sibling functions — <code>closeTender</code> and
-<code>cancelTender</code> — notify <em>before</em> their update commits. The correct pattern is in
-the same file; it just isn't applied uniformly.</p>
+<p>Two sibling functions — <code>closeTender</code> and <code>cancelTender</code> — used to notify
+<em>before</em> their update committed, so a failed update still told vendors the tender had closed.
+Fixed 2026-09-15; all three now follow the same order.</p>
 
 <h2 id="qa">4. Q&amp;A</h2>
 <p><code>Question</code> → <code>Answer</code>, scoped to a tender, vendor-asked and company-answered
@@ -242,41 +261,62 @@ proper claims payload (<code>payload.id</code>) rather than a bare signed string
 per request and attached to <code>req.user</code> through a typed
 <code>express.d.ts</code> augmentation.</p>
 
-<h2 id="different">7. What I'd Do Differently</h2>
+<h2 id="different">7. What Changed, and What's Still Open</h2>
 
+<p>This section used to be a "what I'd do differently" list. Most of it was acted on in
+<code>8e77025</code> (2026-09-15) — see <a href="../MIGRATION-NOTES.md"><code>MIGRATION-NOTES.md</code></a>
+for the compatibility implications of each.</p>
+
+<h3>Done</h3>
 <ol>
-<li><strong>Make every status a Prisma enum.</strong> `draft | open | closed | awarded | cancelled`,
-`pending | accepted | rejected | withdrawn`, `vendor | company | admin`. The guards already exist and
-are correct; enums would make them type-checked instead of string-compared.</li>
+<li><strong>Statuses are Prisma enums.</strong> Member names match the previously stored strings, so
+nothing downstream changed. Surfaced six latent type errors.</li>
 
-<li><strong>Fix the cascade on <code>evaluator</code> and <code>buyer</code>.</strong> Both are
-<code>onDelete: Cascade</code>, so deleting a reviewing admin or a winning vendor deletes the
-tender — and every bid, question and answer under it. Both fields are already nullable;
-<code>SetNull</code> is the correct behaviour and it is a one-word change.</li>
+<li><strong>The cascade is fixed.</strong> <code>evaluator</code> and <code>buyer</code> are now
+<code>SetNull</code>, so deleting a reviewing admin or a winning vendor no longer deletes the tender
+and everything beneath it. <code>owner</code> keeps <code>Cascade</code>, where it is correct.</li>
 
-<li><strong>Declare a transition table.</strong> The per-function guards are individually right but
-collectively invisible. One map, one validator.</li>
+<li><strong>The transition table is declared.</strong> <code>src/v1/domain/tender-state.ts</code>
+holds both machines; the five per-function guards call into it.</li>
 
-<li><strong>Index the schema.</strong> Zero indexes today. Bids-by-tender-and-status and
-notifications-by-user-and-read are both hot.</li>
+<li><strong>The schema is indexed.</strong> Bids by tender and status, tenders by status with
+category and with deadline, notifications by user and read state, and the question/answer foreign
+keys. There were none.</li>
 
-<li><strong>Apply the <code>acceptBid</code> ordering everywhere.</strong> Capture, transact, then
-notify — <code>closeTender</code> and <code>cancelTender</code> notify first.</li>
+<li><strong>Notification ordering is uniform.</strong> <code>closeTender</code> and
+<code>cancelTender</code> now notify after commit, matching <code>acceptBid</code>.</li>
 
-<li><strong>Move expiry to a scheduled job</strong> instead of a read-path side effect.</li>
+<li><strong><code>cost</code> is now <code>minimumBid</code></strong>, with <code>@map("cost")</code>
+so the stored field is unchanged, a response shim mirroring the old key, and DTOs accepting either.
+Existing clients are unaffected.</li>
 
-<li><strong>Rename <code>Tender.cost</code></strong> to <code>minimumBid</code>. It is a floor, not a
-price, and a misleading name on a money field is a bug waiting for a reader.</li>
+<li><strong>Dead and loose fields tightened.</strong> <code>hasNotification</code> removed;
+<code>email</code> and <code>password</code> are now required.</li>
+</ol>
+
+<h3>Still open, deliberately</h3>
+<ol>
+<li><strong>Notifications remain fire-and-forget.</strong> Never awaited, failures logged rather
+than raised. That is the intended trade for a non-critical channel.</li>
+
+<li><strong>Deadline expiry is still lazy</strong> — it runs opportunistically on read rather than
+on a schedule, so a tender nobody looks at stays open past its deadline. It belongs in a scheduled
+job.</li>
+
+<li><strong>There are still no tests.</strong> The enum conversion was verified by the compiler and
+a build, which is not the same thing. The state-machine table is now a pure function over two
+enums — the natural first target.</li>
 </ol>
 
 <div class="callout">
   <span class="lbl">Calibration</span>
   This is the most disciplined backend of the set — real layering, thin controllers, centralised
   errors, transitions that check their preconditions, and an award path that gets atomicity,
-  ordering, and side-effect placement all correct. The weaknesses are concentrated in the
-  <strong>schema</strong>, not the logic: statuses as strings, cascades that delete too much, and no
-  indexes. That's an unusual and rather encouraging shape for a defect profile — the hard part was
-  done well and the declarative part was rushed.
+  ordering, and side-effect placement all correct. The weaknesses were concentrated in the
+  <strong>schema</strong> rather than the logic: statuses as strings, cascades that deleted too
+  much, and no indexes. An unusual and rather encouraging shape for a defect profile — the hard
+  part was done well and the declarative part was rushed, which is the opposite of how these
+  usually fail. That schema work has since been done; what remains open is listed above.
 </div>
 
 </div></main>
