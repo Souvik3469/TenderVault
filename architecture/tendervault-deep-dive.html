@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TenderVault — Deep Dive</title>
+<style>
+  :root {
+    --bg:#0f1117; --bg-alt:#161925; --panel:#1a1e2b; --border:#2a2f40;
+    --text:#dbe1ee; --text-dim:#8b93a7; --accent:#7aa2ff; --accent2:#c792ea;
+    --good:#4fd1a5; --warn:#f0b74e; --bad:#ff7a85; --code-bg:#10131c;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:980px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6}
+  body{display:flex;min-height:100vh}
+  nav.toc{position:sticky;top:0;align-self:flex-start;width:290px;min-width:290px;height:100vh;
+    overflow-y:auto;background:var(--bg-alt);border-right:1px solid var(--border);padding:20px 16px 60px}
+  nav.toc .brand{font-weight:700;font-size:1.1rem;color:var(--accent);margin-bottom:4px}
+  nav.toc .brand-sub{font-size:.78rem;color:var(--text-dim);margin-bottom:18px}
+  nav.toc a{display:block;color:var(--text-dim);text-decoration:none;font-size:.84rem;padding:3px 0 3px 10px;border-left:2px solid transparent}
+  nav.toc a:hover{color:var(--accent);border-left-color:var(--accent)}
+  nav.toc .lvl1{font-weight:700;color:var(--text);margin-top:14px;font-size:.88rem;padding-left:0;border-left:none}
+  nav.toc .lvl1:first-child{margin-top:0}
+  nav.toc .lvl2{padding-left:20px;font-size:.78rem;opacity:.9}
+  main{flex:1;min-width:0;padding:40px clamp(20px,5vw,70px) 120px}
+  .wrap{max-width:var(--maxw);margin:0 auto}
+  h1{font-size:2rem;color:#fff;margin-bottom:.4em}
+  h2{font-size:1.45rem;color:#fff;border-bottom:1px solid var(--border);padding-bottom:10px;margin-top:2.8em;scroll-margin-top:20px}
+  h3{font-size:1.12rem;color:var(--accent);margin-top:2em;scroll-margin-top:20px}
+  h4{font-size:1rem;color:var(--accent2);margin-top:1.6em;margin-bottom:.4em}
+  a{color:var(--accent)}
+  code{font-family:var(--mono);background:var(--code-bg);padding:.1em .4em;border-radius:4px;font-size:.88em;color:#ffd479;border:1px solid var(--border)}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:.84rem}
+  pre code{border:none;background:none;padding:0;color:#cdd6e4}
+  ul,ol{padding-left:1.4em}
+  li{margin-bottom:.35em}
+  table{width:100%;border-collapse:collapse;margin:1em 0 1.6em;font-size:.9rem}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);color:#fff}
+  blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:1.3em 0;padding:12px 18px;border-radius:0 6px 6px 0;color:var(--text)}
+  blockquote p{margin:.4em 0}
+  hr{border:none;border-top:1px solid var(--border);margin:2.4em 0}
+  strong{color:#fff}
+  @media(max-width:900px){body{display:block}nav.toc{position:static;width:auto;min-width:0;height:auto;border-right:none;border-bottom:1px solid var(--border)}}
+</style></head><body>
+<nav class="toc"><div class="brand">TenderVault</div><div class="brand-sub">Deep Dive</div>
+<a class="lvl1" href="#1-overview">1. Overview</a>
+<a class="lvl2" href="#stack">Stack</a>
+<a class="lvl2" href="#scope">Scope</a>
+<a class="lvl2" href="#ownership">Ownership</a>
+<a class="lvl1" href="#2-hld">2. HLD</a>
+<a class="lvl2" href="#components">Components</a>
+<a class="lvl2" href="#communication">Communication</a>
+<a class="lvl2" href="#diagram">Diagram</a>
+<a class="lvl2" href="#deployment-topology">Deployment topology</a>
+<a class="lvl2" href="#cross-cutting-design-choices">Cross-cutting design choices</a>
+<a class="lvl1" href="#3-hld-file-wise-flow">3. HLD — file-wise flow</a>
+<a class="lvl2" href="#backend-files">Backend files</a>
+<a class="lvl2" href="#frontend-files">Frontend files</a>
+<a class="lvl2" href="#flow-a-company-creates-and-publishes-a-tender">Flow A — company creates and publishes a tender</a>
+<a class="lvl2" href="#flow-b-vendor-submits-a-bid">Flow B — vendor submits a bid</a>
+<a class="lvl2" href="#flow-c-company-accepts-a-bid-award">Flow C — company accepts a bid (award)</a>
+<a class="lvl2" href="#flow-d-notification-bell">Flow D — notification bell</a>
+<a class="lvl1" href="#4-lld">4. LLD</a>
+<a class="lvl2" href="#data-model">Data model</a>
+<a class="lvl2" href="#enums">Enums</a>
+<a class="lvl2" href="#tender-state-machine">Tender state machine</a>
+<a class="lvl2" href="#bid-state-machine">Bid state machine</a>
+<a class="lvl2" href="#key-modules-and-interfaces">Key modules and interfaces</a>
+<a class="lvl2" href="#dtos">DTOs</a>
+<a class="lvl2" href="#api-contract">API contract</a>
+<a class="lvl2" href="#error-mapping">Error mapping</a>
+<a class="lvl1" href="#5-lld-function-wise-flow">5. LLD — function-wise flow</a>
+<a class="lvl2" href="#auth">Auth</a>
+<a class="lvl2" href="#tender-lifecycle">Tender lifecycle</a>
+<a class="lvl2" href="#lazy-expiry">Lazy expiry</a>
+<a class="lvl2" href="#queries">Queries</a>
+<a class="lvl2" href="#bids">Bids</a>
+<a class="lvl2" href="#qa">Q&amp;A</a>
+<a class="lvl2" href="#notifications-and-admin">Notifications and admin</a>
+<a class="lvl2" href="#response-path">Response path</a>
+<a class="lvl1" href="#6-dry-runs">6. Dry runs</a>
+<a class="lvl2" href="#dry-run-1-create-and-publish-a-tender-happy-path">Dry run 1 — create and publish a tender (happy path)</a>
+<a class="lvl2" href="#dry-run-2-vendor-bids-below-the-floor-then-bids-correctly-validation-failure">Dry run 2 — vendor bids below the floor, then bids correctly (validation failure)</a>
+<a class="lvl2" href="#dry-run-3-company-accepts-a-bid-atomic-award">Dry run 3 — company accepts a bid (atomic award)</a>
+<a class="lvl2" href="#dry-run-4-lazy-expiry-closes-a-tender-on-read-edge-case">Dry run 4 — lazy expiry closes a tender on read (edge case)</a>
+<a class="lvl2" href="#dry-run-5-illegal-transition-and-wrong-actor-error-paths">Dry run 5 — illegal transition and wrong actor (error paths)</a>
+<a class="lvl1" href="#7-issues">7. Issues</a>
+<a class="lvl2" href="#7a-fixed">7a. Fixed</a>
+<a class="lvl1" href="#8-tradeoffs">8. Tradeoffs</a>
+<a class="lvl1" href="#9-summary">9. Summary</a>
+</nav><main><div class="wrap">
+<h1>TenderVault — Deep Dive</h1>
+<blockquote><p><strong>Two documents, two vintages.</strong> The <code>Docs/</code> folder at the repo root (SRS, SPMP, COCOMO, Gantt, DFDs, test-case workbook) is university coursework describing an earlier version of the system. It does not match the code. This document describes what is in the repository as of commit <code>d840e18</code>.</p></blockquote>
+<hr>
+<h2 id="1-overview">1. Overview</h2>
+<p>TenderVault is a multi-role B2B procurement platform. A <strong>company</strong> publishes a tender with a category, a minimum acceptable bid and a deadline. <strong>Vendors</strong> find it, ask clarifying questions and submit bids with a proposal message. The company awards exactly one bid; every other pending bid is rejected in the same database transaction. An <strong>admin</strong> reviews and rates tenders (1–5) and sees platform-wide stats.</p>
+<p>The core design problem: a tender is a state machine with money attached, and awarding must not half-happen.</p>
+<h3 id="stack">Stack</h3>
+<table><tr><th>Layer</th><th>Technology</th></tr>
+<tr><td>Backend runtime</td><td>Node.js, Express 4, TypeScript 5</td></tr>
+<tr><td>ORM / DB</td><td>Prisma 5 on MongoDB (Atlas)</td></tr>
+<tr><td>Auth</td><td>JWT (HS256) signed and verified with <code>jose</code> v4; passwords hashed with <code>bcrypt</code> (cost 10)</td></tr>
+<tr><td>Validation</td><td>Zod DTOs via a <code>validate</code> middleware</td></tr>
+<tr><td>File upload</td><td><code>multer</code> + <code>multer-storage-cloudinary</code> → Cloudinary</td></tr>
+<tr><td>Hardening</td><td><code>helmet</code>, <code>cors</code>, <code>express-rate-limit</code></td></tr>
+<tr><td>Frontend</td><td>React 18 + Vite, TanStack React Query v4, Axios, React Router v6, Tailwind</td></tr>
+<tr><td>i18n</td><td><code>i18next</code> + <code>react-i18next</code> — English, Hindi, Bengali, Gujarati, Punjabi</td></tr>
+<tr><td>Hosting</td><td>Frontend on Vercel (<code>tendervault.vercel.app</code>); backend host is not recorded in the repo</td></tr>
+</table>
+<h3 id="scope">Scope</h3>
+<table><tr><th>In scope</th><th>Not in scope</th></tr>
+<tr><td>Register / login, three roles</td><td>OAuth, email verification, password reset</td></tr>
+<tr><td>Tender CRUD + lifecycle (draft → open → closed → awarded / cancelled)</td><td>Sealed-bid cryptography, multi-round bidding</td></tr>
+<tr><td>One bid per vendor per tender, accept / reject / withdraw / delete</td><td>Payments, contracts, documents per bid</td></tr>
+<tr><td>Public Q&amp;A thread per tender</td><td>Private messaging</td></tr>
+<tr><td>In-app notifications (polled every 30 s)</td><td>Push, email or WebSocket delivery</td></tr>
+<tr><td>Admin stats and tender review</td><td>User management / bans</td></tr>
+</table>
+<p><code>nodemailer</code> and <code>openai</code> are listed in <code>backend/package.json</code> but not imported anywhere in <code>backend/src</code>.</p>
+<h3 id="ownership">Ownership</h3>
+<p>All application code in the repository is authored by Souvik (single git author). The 2026-09-15 schema hardening (<code>8e77025</code>) was done by him after a self-audit of the schema; section 7a lists what it changed.</p>
+<hr>
+<h2 id="2-hld">2. HLD</h2>
+<h3 id="components">Components</h3>
+<table><tr><th>Component</th><th>Role</th></tr>
+<tr><td>React SPA (<code>frontend/</code>)</td><td>UI for all three roles. Stores the JWT in <code>localStorage</code>, calls the API over HTTPS/JSON via one Axios instance.</td></tr>
+<tr><td>Express API (<code>backend/</code>)</td><td>Stateless REST API under <code>/v1</code>. Layered: routes → controllers → services → Prisma.</td></tr>
+<tr><td>MongoDB</td><td>Single database, six collections: <code>User</code>, <code>Tender</code>, <code>Bid</code>, <code>Question</code>, <code>Answer</code>, <code>Notification</code>.</td></tr>
+<tr><td>Cloudinary</td><td>Stores tender cover images. The API streams uploads there and returns the hosted URL.</td></tr>
+</table>
+<h3 id="communication">Communication</h3>
+<table><tr><th>From → To</th><th>Protocol</th><th>Notes</th></tr>
+<tr><td>SPA → API</td><td>HTTPS, JSON, <code>Authorization: Bearer &lt;jwt&gt;</code></td><td>Every route except login/register/health requires the header.</td></tr>
+<tr><td>SPA → API (notifications)</td><td>HTTP polling</td><td><code>useUnreadCount</code> refetches <code>/notifications/unread-count</code> every 30 s. No WebSocket.</td></tr>
+<tr><td>API → MongoDB</td><td>Prisma client (MongoDB wire protocol)</td><td>One <code>PrismaClient</code> singleton; disconnected only on SIGTERM / SIGINT.</td></tr>
+<tr><td>API → Cloudinary</td><td>HTTPS (Cloudinary SDK via multer storage engine)</td><td>Only on <code>POST /v1/tenders/upload</code>.</td></tr>
+</table>
+<h3 id="diagram">Diagram</h3>
+<pre><code>                        +-----------------------------+
+                        |  Browser: React SPA (Vite)  |
+                        |  React Query cache          |
+                        |  localStorage["token"]      |
+                        +--------------+--------------+
+                                       |
+             HTTPS JSON + Bearer JWT   |   poll /notifications/unread-count (30s)
+                                       v
++----------------------------------------------------------------------------+
+|  Express API  (backend/src/app.ts)                                         |
+|                                                                            |
+|  cors -&gt; helmet -&gt; rateLimit(1000/15min) -&gt; json -&gt; morgan -&gt; legacyFields |
+|                                                                            |
+|  /v1/auth  /v1/users  /v1/tenders  /v1/notifications  /v1/admin            |
+|       |          |          |               |               |              |
+|  authMiddleware (jose jwtVerify + load User) -&gt; validate(ZodDto)           |
+|       v          v          v               v               v              |
+|  controllers (parse params, call service, send {success,message,data})    |
+|       v                                                                    |
+|  services  ----uses----&gt; domain/tender-state.ts (transition tables)        |
+|     |   \----fire&amp;forget----&gt; utils/notify.ts                              |
+|     |                                                                      |
+|  errorMiddleware (AppError / ZodError -&gt; JSON status)                      |
++-----+-------------------------------------------------+--------------------+
+      | Prisma Client                                   | multer storage
+      v                                                 v
++------------------------------+             +------------------------+
+| MongoDB (Atlas)              |             | Cloudinary             |
+| User Tender Bid Question     |             | folder tendervault/    |
+| Answer Notification          |             | tenders, &lt;=5MB images  |
++------------------------------+             +------------------------+</code></pre>
+<h3 id="deployment-topology">Deployment topology</h3>
+<ul><li>Frontend: static Vite build on Vercel. <code>VITE_API_URL</code> sets the API base URL; default <code>http://localhost:5000/v1</code>.</li><li>Backend: one Node process (<code>node build/server.js</code> after <code>tsc</code>). Stateless, so it scales horizontally behind a load balancer. <code>app.set('trust proxy', 1)</code> assumes one proxy hop (needed so the rate limiter sees the client IP).</li><li>Database: MongoDB. <code>prisma.$transaction</code> on MongoDB requires a replica set; Atlas provides one.</li><li>Schema changes: <code>npx prisma db push</code> (MongoDB has no migration files). Indexes are created by <code>db push</code>.</li><li>Startup config is validated by Zod in <code>src/v1/config/env.ts</code>; the process exits if <code>DATABASE_URL</code>, <code>USER_ACCESS_SECRET</code> or the three Cloudinary variables are missing.</li></ul>
+<h3 id="cross-cutting-design-choices">Cross-cutting design choices</h3>
+<table><tr><th>Choice</th><th>Where</th><th>Effect</th></tr>
+<tr><td>Services throw <code>AppError(message, status)</code>; one error middleware formats it</td><td><code>utils/errors.ts</code>, <code>middlewares/error.middleware.ts</code></td><td>Services never touch <code>res</code>.</td></tr>
+<tr><td>Named lifecycle operations, not a generic <code>updateStatus</code></td><td><code>services/tender.service.ts</code></td><td>Each operation can enforce its own preconditions.</td></tr>
+<tr><td>Transition tables declared once</td><td><code>domain/tender-state.ts</code></td><td>Guards call <code>assertTenderTransition</code> / <code>assertBidTransition</code>.</td></tr>
+<tr><td>Lazy deadline expiry</td><td><code>autoExpireTender</code>, <code>autoExpireAll</code></td><td>No scheduler needed; expiry happens on the next read.</td></tr>
+<tr><td>Fire-and-forget notifications</td><td><code>utils/notify.ts</code></td><td>A failed notification write never fails the request.</td></tr>
+<tr><td>Response shim for a renamed field</td><td><code>middlewares/legacyFields.middleware.ts</code></td><td><code>minimumBid</code> is mirrored onto <code>cost</code> in every JSON response.</td></tr>
+</table>
+<hr>
+<h2 id="3-hld-file-wise-flow">3. HLD — file-wise flow</h2>
+<h3 id="backend-files">Backend files</h3>
+<table><tr><th>File / folder</th><th>What it does</th></tr>
+<tr><td><code>backend/src/server.ts</code></td><td>Starts the HTTP server on <code>PORT</code>; graceful shutdown disconnects Prisma.</td></tr>
+<tr><td><code>backend/src/app.ts</code></td><td>Builds the Express app: CORS, helmet, rate limit, body parsers, morgan, <code>legacyFields</code>, health route, <code>/v1</code> router, 404, error handler.</td></tr>
+<tr><td><code>backend/src/prisma/index.ts</code></td><td>Exports the single <code>PrismaClient</code>.</td></tr>
+<tr><td><code>backend/prisma/schema.prisma</code></td><td>Models, enums, relations, indexes.</td></tr>
+<tr><td><code>backend/src/v1/config/env.ts</code></td><td>Loads <code>.env</code> with dotenv and validates it with Zod.</td></tr>
+<tr><td><code>backend/src/v1/routes/index.ts</code></td><td>Mounts the five routers under <code>/auth</code>, <code>/users</code>, <code>/tenders</code>, <code>/notifications</code>, <code>/admin</code>.</td></tr>
+<tr><td><code>backend/src/v1/routes/*.routes.ts</code></td><td>Maps method + path to middleware chain + controller. Fixed paths are declared before <code>/:id</code> paths.</td></tr>
+<tr><td><code>backend/src/v1/middlewares/auth.middleware.ts</code></td><td>Verifies the Bearer JWT, loads the <code>User</code>, sets <code>req.user</code>.</td></tr>
+<tr><td><code>backend/src/v1/middlewares/validate.middleware.ts</code></td><td><code>validate(schema)</code> parses <code>req.body</code> with Zod and replaces it with the parsed value.</td></tr>
+<tr><td><code>backend/src/v1/middlewares/upload.middleware.ts</code></td><td><code>uploadSingle</code>: multer single-file upload (<code>file</code> field) to Cloudinary, 5 MB, jpg/jpeg/png/webp.</td></tr>
+<tr><td><code>backend/src/v1/middlewares/legacyFields.middleware.ts</code></td><td>Wraps <code>res.json</code> to copy <code>minimumBid</code> onto <code>cost</code>.</td></tr>
+<tr><td><code>backend/src/v1/middlewares/error.middleware.ts</code></td><td>Converts <code>AppError</code>, <code>ZodError</code> and <code>{status}</code> errors to JSON; everything else → 500.</td></tr>
+<tr><td><code>backend/src/v1/dtos/*.dto.ts</code></td><td>Zod schemas for request bodies (auth, tender/bid/Q&amp;A, user).</td></tr>
+<tr><td><code>backend/src/v1/controllers/*.controller.ts</code></td><td>Read params / query / <code>req.user</code>, call a service, send <code>{ success, message, data }</code>.</td></tr>
+<tr><td><code>backend/src/v1/services/tender.service.ts</code></td><td>Tender lifecycle, queries, bids, award, Q&amp;A, lazy expiry (586 lines).</td></tr>
+<tr><td><code>backend/src/v1/services/auth.service.ts</code></td><td><code>loginUser</code>, <code>registerUser</code>.</td></tr>
+<tr><td><code>backend/src/v1/services/user.service.ts</code></td><td>Profile read/update, password change, directories, <code>getMyBids</code>.</td></tr>
+<tr><td><code>backend/src/v1/services/notification.service.ts</code></td><td>List, unread count, mark read, mark all read.</td></tr>
+<tr><td><code>backend/src/v1/services/admin.service.ts</code></td><td><code>getStats</code>, <code>getAllTendersAdmin</code>.</td></tr>
+<tr><td><code>backend/src/v1/domain/tender-state.ts</code></td><td><code>TENDER_TRANSITIONS</code>, <code>BID_TRANSITIONS</code>, assert helpers, <code>parseTenderStatus</code>.</td></tr>
+<tr><td><code>backend/src/utils/errors.ts</code></td><td><code>AppError</code> class.</td></tr>
+<tr><td><code>backend/src/utils/notify.ts</code></td><td><code>notify(userId, body, type)</code> — un-awaited <code>notification.create</code>.</td></tr>
+<tr><td><code>backend/src/utils/response.ts</code></td><td><code>sendSuccess</code> / <code>sendError</code> helpers (controllers mostly inline the same shape).</td></tr>
+<tr><td><code>backend/src/v1/types/express.d.ts</code></td><td>Augments <code>Express.Request</code> with <code>user: User</code>.</td></tr>
+</table>
+<h3 id="frontend-files">Frontend files</h3>
+<table><tr><th>File / folder</th><th>What it does</th></tr>
+<tr><td><code>frontend/src/main.jsx</code></td><td>Mounts React with <code>QueryClientProvider</code>, MUI date <code>LocalizationProvider</code>, <code>BrowserRouter</code>, toast container; imports i18n.</td></tr>
+<tr><td><code>frontend/src/App.jsx</code></td><td>Route table: <code>/</code>, <code>/register</code>, <code>/login</code>, <code>/home</code>, <code>/createtender</code>, <code>/updatetender/:tenderId</code>, <code>/tender/:tenderId</code>, <code>/myprofile</code>, <code>/profile/:userId</code>, <code>/admin</code>.</td></tr>
+<tr><td><code>frontend/src/api/client.ts</code></td><td>Axios singleton; request interceptor adds <code>Authorization: Bearer &lt;localStorage.token&gt;</code>.</td></tr>
+<tr><td><code>frontend/src/api/index.ts</code></td><td><code>registerUser</code>, <code>loginUser</code>, <code>logoutUser</code>.</td></tr>
+<tr><td><code>frontend/src/api/tender/index.ts</code></td><td>Tender raw calls, <code>tenderKeys</code> query-key factory, React Query hooks.</td></tr>
+<tr><td><code>frontend/src/api/bid/index.ts</code></td><td>Bid raw calls (<code>createbid</code>, <code>acceptBid</code>, ...) and hooks.</td></tr>
+<tr><td><code>frontend/src/api/notification/index.ts</code></td><td>Notification calls; <code>useUnreadCount</code> polls every 30 s.</td></tr>
+<tr><td><code>frontend/src/api/user/index.ts</code>, <code>api/admin/index.ts</code></td><td>Profile, my bids, admin stats and tender table.</td></tr>
+<tr><td><code>frontend/src/Components/tender/*</code></td><td>Create / update forms, details card (publish button), Q&amp;A section.</td></tr>
+<tr><td><code>frontend/src/Components/bids/BidList.jsx</code></td><td>Bid form for vendors; accept / reject / delete actions with a confirmation modal.</td></tr>
+<tr><td><code>frontend/src/Components/notifications/NotificationBell.jsx</code></td><td>Unread badge + dropdown, mark read / mark all read.</td></tr>
+<tr><td><code>frontend/src/Components/home/Home.jsx</code></td><td>Open and awarded tabs; category, price and text filters applied client-side.</td></tr>
+<tr><td><code>frontend/src/Language/i18n.js</code> + <code>locales/*.json</code></td><td>i18next setup; language picker lives in <code>Pages/LandingPage.jsx</code>.</td></tr>
+</table>
+<h3 id="flow-a-company-creates-and-publishes-a-tender">Flow A — company creates and publishes a tender</h3>
+<ol><li><code>Components/tender/CreateTender.jsx</code> → optional <code>uploadTenderImage(file)</code> posts multipart to <code>/tenders/upload</code>; then <code>createTender({... cost, deadline ISO ...})</code>.</li><li><code>api/client.ts</code> → adds the Bearer token.</li><li><code>routes/tender.routes.ts</code> (<code>POST /</code>) → chain <code>authMiddleware</code> → <code>validate(CreateTenderDto)</code> → <code>tc.createTender</code>.</li><li><code>middlewares/auth.middleware.ts</code> → verifies JWT, sets <code>req.user</code>.</li><li><code>dtos/tender.dto.ts</code> → requires <code>minimumBid</code> or <code>cost</code>, normalises to <code>minimumBid</code>.</li><li><code>controllers/tender.controller.ts</code> → passes <code>req.user.id / role / name</code> and body to the service.</li><li><code>services/tender.service.ts#createTender</code> → role check, inserts a <code>draft</code> tender.</li><li><code>middlewares/legacyFields.middleware.ts</code> → adds <code>cost</code> to the response JSON.</li><li>Later: <code>Components/tender/TenderDetailsCard.jsx</code> → <code>usePublishTender</code> → <code>PATCH /tenders/:id/publish</code> → <code>tc.publishTender</code> → <code>publishTender</code> → <code>domain/tender-state.ts#assertTenderTransition(draft, open)</code> → update.</li></ol>
+<h3 id="flow-b-vendor-submits-a-bid">Flow B — vendor submits a bid</h3>
+<ol><li><code>Components/bids/BidList.jsx</code> → <code>createbid(tenderId, { amount, message })</code>.</li><li><code>routes/tender.routes.ts</code> (<code>POST /:tenderId/bids</code>) → <code>authMiddleware</code> → <code>validate(CreateBidDto)</code> → <code>tc.createBid</code>.</li><li><code>services/tender.service.ts#createBid</code> → role check; <code>autoExpireTender</code> (may close the tender); checks <code>open</code>, <code>amount &gt;= minimumBid</code>, no existing bid; creates the bid.</li><li><code>utils/notify.ts</code> → un-awaited <code>bid_received</code> notification for the company.</li></ol>
+<h3 id="flow-c-company-accepts-a-bid-award">Flow C — company accepts a bid (award)</h3>
+<ol><li><code>Components/bids/BidList.jsx</code> → confirmation modal → <code>acceptBid(bidId)</code>.</li><li><code>routes/tender.routes.ts</code> (<code>PUT /bids/:bidId/accept</code>, declared before <code>/:tenderId</code>) → <code>authMiddleware</code> → <code>tc.acceptBid</code>.</li><li><code>services/tender.service.ts#acceptBid</code> → ownership, bid and tender transition checks; reads losing vendors; runs a three-write <code>prisma.$transaction</code>.</li><li><code>utils/notify.ts</code> → <code>bid_accepted</code> to the winner, <code>bid_rejected</code> to each loser, after commit.</li></ol>
+<h3 id="flow-d-notification-bell">Flow D — notification bell</h3>
+<ol><li><code>Components/notifications/NotificationBell.jsx</code> → <code>useUnreadCount</code> (polls 30 s) and <code>useNotifications</code>.</li><li><code>routes/notification.routes.ts</code> → <code>authMiddleware</code> → <code>getUnreadCount</code> / <code>getMyNotifications</code>.</li><li><code>services/notification.service.ts</code> → <code>count</code> / <code>findMany</code> on <code>Notification</code> by <code>userId</code> (served by <code>@@index([userId, read])</code>).</li><li>Click → <code>useMarkRead</code> → <code>PATCH /notifications/:id/read</code> → <code>markRead</code> checks <code>notif.userId === userId</code>.</li></ol>
+<hr>
+<h2 id="4-lld">4. LLD</h2>
+<h3 id="data-model">Data model</h3>
+<table><tr><th>Entity</th><th>Key fields</th><th>Relations</th><th>Indexes</th></tr>
+<tr><td><code>User</code></td><td><code>id</code> (ObjectId), <code>name?</code>, <code>email</code> (unique, required), <code>password</code> (bcrypt hash, required), <code>role</code> <code>UserRole?</code> default <code>vendor</code>, <code>bio?</code>, <code>profileImage?</code>, <code>coverImage?</code>, <code>document?</code></td><td>owns <code>Tender[]</code> (<code>ownedTenders</code>), won <code>Tender[]</code> (<code>boughtTenders</code>), reviewed <code>Tender[]</code> (<code>evaluatedTenders</code>), <code>Bid[]</code> as company and as vendor, <code>Notification[]</code>, <code>Question[]</code>, <code>Answer[]</code></td><td>unique <code>email</code></td></tr>
+<tr><td><code>Tender</code></td><td><code>title</code>, <code>description?</code>, <code>category</code>, <code>minimumBid</code> (Float, stored as <code>cost</code>), <code>deadline?</code>, <code>status</code> <code>TenderStatus?</code> default <code>draft</code>, <code>rating?</code> (1–5), <code>imageUrl?</code>, <code>companyName?</code> (denormalised)</td><td><code>owner</code> via <code>companyId</code> (Cascade), <code>evaluator</code> via <code>evaluatorId?</code> (SetNull), <code>buyer</code> via <code>buyerId?</code> (SetNull), <code>bids</code>, <code>questions</code></td><td><code>[status, category]</code>, <code>[status, deadline]</code>, <code>[companyId]</code></td></tr>
+<tr><td><code>Bid</code></td><td><code>amount</code> (Float), <code>status</code> <code>BidStatus</code>, <code>message?</code>, <code>vendorName?</code> (denormalised), <code>location?</code></td><td><code>tender</code> (Cascade), <code>company</code> via <code>companyId</code> (Cascade), <code>vendor</code> via <code>vendorId</code> (Cascade)</td><td><code>[tenderId, status]</code>, <code>[vendorId, status]</code></td></tr>
+<tr><td><code>Question</code></td><td><code>text</code></td><td><code>tender</code> (Cascade), <code>asker</code> via <code>userId</code></td><td><code>[tenderId]</code></td></tr>
+<tr><td><code>Answer</code></td><td><code>text</code></td><td><code>question</code> (Cascade), <code>owner</code> via <code>userId</code></td><td><code>[questionId]</code></td></tr>
+<tr><td><code>Notification</code></td><td><code>body</code>, <code>type</code> <code>NotificationType?</code>, <code>read</code> default <code>false</code></td><td><code>user</code> via <code>userId</code></td><td><code>[userId, read]</code></td></tr>
+</table>
+<p>All models have <code>createdAt</code> / <code>updatedAt</code>. MongoDB has no foreign keys; Prisma emulates the referential actions (<code>Cascade</code>, <code>SetNull</code>) in the client.</p>
+<h3 id="enums">Enums</h3>
+<table><tr><th>Enum</th><th>Members</th></tr>
+<tr><td><code>UserRole</code></td><td><code>vendor</code>, <code>company</code>, <code>admin</code></td></tr>
+<tr><td><code>TenderStatus</code></td><td><code>draft</code>, <code>open</code>, <code>closed</code>, <code>awarded</code>, <code>cancelled</code></td></tr>
+<tr><td><code>BidStatus</code></td><td><code>pending</code>, <code>accepted</code>, <code>rejected</code>, <code>withdrawn</code></td></tr>
+<tr><td><code>NotificationType</code></td><td><code>bid_received</code>, <code>bid_accepted</code>, <code>bid_rejected</code>, <code>tender_reviewed</code>, <code>tender_closed</code>, <code>tender_cancelled</code>, <code>question_asked</code>, <code>question_answered</code></td></tr>
+</table>
+<p>Enum member names equal the strings stored before the enums existed, so old documents deserialize unchanged.</p>
+<h3 id="tender-state-machine">Tender state machine</h3>
+<p>Source: <code>TENDER_TRANSITIONS</code> in <code>backend/src/v1/domain/tender-state.ts</code>.</p>
+<pre><code>               publishTender              closeTender  or  deadline passed
+    draft ----------------------&gt; open -------------------------------&gt; closed
+      |                            |  \                                  |  |
+      |                            |   \ acceptBid                       |  |
+      |                            |    `----------&gt; awarded &lt;----------'  |
+      |                            |                 (terminal) acceptBid  |
+      | cancelTender               | cancelTender                          | cancelTender
+      `----------------------------+----------------&gt; cancelled &lt;----------'
+                                                      (terminal)</code></pre>
+<table><tr><th>From</th><th>Allowed to</th><th>Triggered by</th></tr>
+<tr><td><code>draft</code></td><td><code>open</code>, <code>cancelled</code></td><td><code>publishTender</code>, <code>cancelTender</code></td></tr>
+<tr><td><code>open</code></td><td><code>closed</code>, <code>awarded</code>, <code>cancelled</code></td><td><code>closeTender</code> / lazy expiry, <code>acceptBid</code>, <code>cancelTender</code></td></tr>
+<tr><td><code>closed</code></td><td><code>awarded</code>, <code>cancelled</code></td><td><code>acceptBid</code>, <code>cancelTender</code></td></tr>
+<tr><td><code>awarded</code></td><td>none</td><td>terminal</td></tr>
+<tr><td><code>cancelled</code></td><td>none</td><td>terminal</td></tr>
+</table>
+<p>Lazy expiry (<code>autoExpireTender</code>, <code>autoExpireAll</code>) writes <code>open → closed</code> directly without calling the assert helper; the condition <code>status === open</code> makes it equivalent.</p>
+<h3 id="bid-state-machine">Bid state machine</h3>
+<pre><code>             acceptBid (owner)
+  pending ----------------------&gt; accepted  (terminal)
+     |   rejectBid (owner) or acceptBid of another bid (auto-reject)
+     +--------------------------&gt; rejected  (terminal)
+     |   withdrawBid (vendor)
+     +--------------------------&gt; withdrawn (terminal)
+     |   deleteBid (vendor) -- same guard as withdrawal, then hard delete
+     +--------------------------&gt; (document removed)</code></pre>
+<h3 id="key-modules-and-interfaces">Key modules and interfaces</h3>
+<table><tr><th>Module</th><th>Exports</th><th>Contract</th></tr>
+<tr><td><code>domain/tender-state.ts</code></td><td><code>TENDER_TRANSITIONS</code>, <code>BID_TRANSITIONS</code>, <code>canTransitionTender(from, to)</code>, <code>canTransitionBid(from, to)</code>, <code>assertTenderTransition(from, to)</code>, <code>assertBidTransition(from, to)</code>, <code>parseTenderStatus(value)</code></td><td>Pure. Asserts throw <code>AppError(400)</code> naming the allowed targets. <code>parseTenderStatus</code> returns <code>undefined</code> (absent), <code>null</code> (invalid) or the enum value.</td></tr>
+<tr><td><code>utils/errors.ts</code></td><td><code>AppError(message, statusCode)</code></td><td>Thrown by services; caught by <code>errorMiddleware</code>.</td></tr>
+<tr><td><code>utils/notify.ts</code></td><td><code>notify(userId, body, type): void</code></td><td>Starts <code>notification.create</code>, never awaited, logs failures to <code>console.error</code>.</td></tr>
+<tr><td><code>middlewares/auth.middleware.ts</code></td><td>default <code>authMiddleware</code></td><td>401 on missing header, missing token, bad signature/expiry, or unknown user. Sets <code>req.user: User</code>.</td></tr>
+<tr><td><code>middlewares/validate.middleware.ts</code></td><td><code>validate(schema)</code>, <code>validateQuery(schema)</code></td><td>400 with joined Zod messages; <code>validate</code> replaces <code>req.body</code> with parsed data. <code>validateQuery</code> is not used by any route.</td></tr>
+<tr><td><code>middlewares/legacyFields.middleware.ts</code></td><td><code>legacyFields</code></td><td>Recursively walks the response body (with a <code>WeakSet</code> cycle guard) and sets <code>cost = minimumBid</code> where <code>cost</code> is absent.</td></tr>
+<tr><td><code>services/tender.service.ts</code></td><td>24 exported functions (see section 5)</td><td>Each takes explicit ids / role strings from the controller, not <code>req</code>.</td></tr>
+</table>
+<h3 id="dtos">DTOs</h3>
+<table><tr><th>DTO</th><th>Fields</th></tr>
+<tr><td><code>RegisterDto</code></td><td><code>name</code> (min 1), <code>email</code> (email), <code>password</code> (min 6), <code>role</code> <code>vendor</code> or <code>company</code> (default <code>vendor</code>) — <code>admin</code> cannot self-register</td></tr>
+<tr><td><code>LoginDto</code></td><td><code>email</code>, <code>password</code></td></tr>
+<tr><td><code>CreateTenderDto</code></td><td><code>title</code>, <code>description?</code>, <code>category</code>, <code>minimumBid?</code> or <code>cost?</code> (positive; at least one), <code>imageUrl?</code> (URL), <code>deadline?</code> (ISO datetime) → output always has <code>minimumBid</code></td></tr>
+<tr><td><code>UpdateTenderDto</code></td><td>all optional; same <code>cost</code> alias; no <code>status</code> field</td></tr>
+<tr><td><code>ReviewTenderDto</code></td><td><code>rating</code> int 1–5</td></tr>
+<tr><td><code>CreateBidDto</code></td><td><code>amount</code> positive, <code>message?</code> max 1000</td></tr>
+<tr><td><code>QuestionDto</code> / <code>AnswerDto</code></td><td><code>text</code> 1–500 / 1–1000 chars</td></tr>
+<tr><td><code>UpdateProfileDto</code></td><td><code>name?</code>, <code>bio?</code>, <code>profileImage?</code> (URL), <code>coverImage?</code> (URL), <code>document?</code></td></tr>
+<tr><td><code>ChangePasswordDto</code></td><td><code>currentPassword</code>, <code>newPassword</code> (min 6)</td></tr>
+</table>
+<h3 id="api-contract">API contract</h3>
+<p>Base path <code>/v1</code>. Every response is <code>{ success: boolean, message: string, data?: T }</code>. "Auth" = Bearer JWT required. Role checks happen in services unless noted.</p>
+<table><tr><th>Method</th><th>Path</th><th>Auth / role</th><th>Request</th><th>Response <code>data</code></th></tr>
+<tr><td>GET</td><td><code>/</code> (no <code>/v1</code>)</td><td>none</td><td>—</td><td>health message only</td></tr>
+<tr><td>POST</td><td><code>/auth/register</code></td><td>none</td><td><code>RegisterDto</code></td><td>user without <code>password</code> (201)</td></tr>
+<tr><td>POST</td><td><code>/auth/login</code></td><td>none</td><td><code>LoginDto</code></td><td><code>{ user, accessToken }</code>; also sets <code>accessToken</code> cookie</td></tr>
+<tr><td>POST</td><td><code>/auth/logout</code></td><td>auth</td><td>—</td><td>clears cookie</td></tr>
+<tr><td>GET</td><td><code>/users/me</code></td><td>auth</td><td>—</td><td>current user</td></tr>
+<tr><td>PUT</td><td><code>/users/me</code></td><td>auth</td><td><code>UpdateProfileDto</code></td><td>updated user</td></tr>
+<tr><td>PUT</td><td><code>/users/me/password</code></td><td>auth</td><td><code>ChangePasswordDto</code></td><td>—</td></tr>
+<tr><td>GET</td><td><code>/users/me/bids</code></td><td>vendor</td><td>—</td><td>bids with tender summary</td></tr>
+<tr><td>GET</td><td><code>/users/vendors</code>, <code>/users/companies</code></td><td>auth</td><td>—</td><td>user list without passwords</td></tr>
+<tr><td>GET</td><td><code>/users/:userId</code></td><td>auth</td><td>—</td><td>user without password</td></tr>
+<tr><td>GET</td><td><code>/tenders</code></td><td>auth</td><td><code>?page&amp;limit(&lt;=100)&amp;category&amp;status</code></td><td><code>{ tenders, total, page, limit, pages }</code>; defaults to <code>open</code></td></tr>
+<tr><td>POST</td><td><code>/tenders</code></td><td>company</td><td><code>CreateTenderDto</code></td><td>tender in <code>draft</code> (201)</td></tr>
+<tr><td>GET</td><td><code>/tenders/search</code></td><td>auth</td><td><code>?name&amp;page&amp;limit</code></td><td>paginated open tenders matching title</td></tr>
+<tr><td>GET</td><td><code>/tenders/mine</code></td><td>company</td><td>—</td><td>own tenders with bid counts</td></tr>
+<tr><td>GET</td><td><code>/tenders/won</code></td><td>auth</td><td>—</td><td>awarded tenders where <code>buyerId</code> = caller</td></tr>
+<tr><td>GET</td><td><code>/tenders/categories</code></td><td>auth</td><td>—</td><td>distinct category strings</td></tr>
+<tr><td>POST</td><td><code>/tenders/upload</code></td><td>auth</td><td>multipart <code>file</code></td><td><code>{ imageUrl }</code></td></tr>
+<tr><td>GET</td><td><code>/tenders/:tenderId</code></td><td>auth</td><td>—</td><td>tender + owner + bid count (after lazy expiry)</td></tr>
+<tr><td>PUT</td><td><code>/tenders/:tenderId</code></td><td>owner</td><td><code>UpdateTenderDto</code></td><td>updated tender; 400 if awarded/cancelled</td></tr>
+<tr><td>DELETE</td><td><code>/tenders/:tenderId</code></td><td>owner</td><td>—</td><td>—; 400 if awarded</td></tr>
+<tr><td>GET</td><td><code>/tenders/:tenderId/stats</code></td><td>owner</td><td>—</td><td><code>{ total, byStatus, amounts: {min,max,avg} or null }</code></td></tr>
+<tr><td>PATCH</td><td><code>/tenders/:tenderId/publish</code></td><td>owner</td><td>—</td><td>tender (<code>open</code>)</td></tr>
+<tr><td>PATCH</td><td><code>/tenders/:tenderId/close</code></td><td>owner</td><td>—</td><td>tender (<code>closed</code>)</td></tr>
+<tr><td>PATCH</td><td><code>/tenders/:tenderId/cancel</code></td><td>owner</td><td>—</td><td>tender (<code>cancelled</code>)</td></tr>
+<tr><td>PUT</td><td><code>/tenders/:tenderId/review</code></td><td>admin</td><td><code>ReviewTenderDto</code></td><td>tender with <code>rating</code>, <code>evaluatorId</code></td></tr>
+<tr><td>GET</td><td><code>/tenders/:tenderId/bids</code></td><td>auth</td><td>—</td><td>vendor: own bid only; owner company / admin: all bids</td></tr>
+<tr><td>POST</td><td><code>/tenders/:tenderId/bids</code></td><td>vendor</td><td><code>CreateBidDto</code></td><td>bid (201)</td></tr>
+<tr><td>GET</td><td><code>/tenders/:tenderId/bids/:bidId</code></td><td>auth</td><td>—</td><td>bid; vendors only their own</td></tr>
+<tr><td>PUT</td><td><code>/tenders/bids/:bidId/accept</code></td><td>tender owner</td><td>—</td><td><code>{ acceptedBid, updatedTender }</code></td></tr>
+<tr><td>PUT</td><td><code>/tenders/bids/:bidId/reject</code></td><td>tender owner</td><td>—</td><td>bid (<code>rejected</code>)</td></tr>
+<tr><td>PATCH</td><td><code>/tenders/bids/:bidId/withdraw</code></td><td>bid's vendor</td><td>—</td><td>bid (<code>withdrawn</code>)</td></tr>
+<tr><td>DELETE</td><td><code>/tenders/bids/:bidId</code></td><td>bid's vendor</td><td>—</td><td>— (pending bids only)</td></tr>
+<tr><td>GET</td><td><code>/tenders/:tenderId/questions</code></td><td>auth</td><td>—</td><td>questions with asker and answers</td></tr>
+<tr><td>POST</td><td><code>/tenders/:tenderId/questions</code></td><td>vendor</td><td><code>QuestionDto</code></td><td>question (201); tender must be <code>open</code></td></tr>
+<tr><td>POST</td><td><code>/tenders/:tenderId/questions/:questionId/answers</code></td><td>owner company or admin</td><td><code>AnswerDto</code></td><td>answer (201)</td></tr>
+<tr><td>GET</td><td><code>/notifications</code></td><td>auth</td><td>—</td><td>caller's notifications, newest first</td></tr>
+<tr><td>GET</td><td><code>/notifications/unread-count</code></td><td>auth</td><td>—</td><td><code>{ count }</code></td></tr>
+<tr><td>PATCH</td><td><code>/notifications/read-all</code></td><td>auth</td><td>—</td><td>—</td></tr>
+<tr><td>PATCH</td><td><code>/notifications/:id/read</code></td><td>owner of notification</td><td>—</td><td>notification</td></tr>
+<tr><td>GET</td><td><code>/admin/stats</code></td><td>admin</td><td>—</td><td><code>{ users, tenders (per status), bids }</code></td></tr>
+<tr><td>GET</td><td><code>/admin/tenders</code></td><td>admin</td><td><code>?page&amp;limit&amp;status&amp;category</code></td><td>paginated, all statuses, owner email</td></tr>
+</table>
+<h3 id="error-mapping">Error mapping</h3>
+<table><tr><th>Source</th><th>HTTP</th></tr>
+<tr><td>Missing / bad / expired JWT, unknown user</td><td>401 (from <code>authMiddleware</code>)</td></tr>
+<tr><td>Zod body failure</td><td>400 (from <code>validate</code>)</td></tr>
+<tr><td><code>AppError</code></td><td>its <code>statusCode</code> (400, 403, 404, 409)</td></tr>
+<tr><td><code>ZodError</code> thrown elsewhere</td><td>400</td></tr>
+<tr><td>Error with <code>status</code> property (e.g. multer)</td><td>that status</td></tr>
+<tr><td>Anything else (including Prisma errors)</td><td>500 <code>Internal server error.</code></td></tr>
+</table>
+<hr>
+<h2 id="5-lld-function-wise-flow">5. LLD — function-wise flow</h2>
+<p>All functions below are in <code>backend/src/v1/services/tender.service.ts</code> unless another file is named.</p>
+<h3 id="auth">Auth</h3>
+<ul><li><code>authMiddleware(req, res, next)</code> in <code>middlewares/auth.middleware.ts</code> → splits <code>Authorization</code>, runs <code>jwtVerify(token, secret)</code>, reads <code>payload.id</code>, <code>prisma.user.findUnique</code>. Output: <code>req.user</code>. Errors: 401 JSON directly (does not go through <code>errorMiddleware</code>).</li><li><code>loginUser({ email, password })</code> in <code>services/auth.service.ts</code> → <code>findUnique({ email })</code>, <code>bcrypt.compare</code>. Signs <code>{ id }</code> with HS256, expiry <code>7d</code>. Returns <code>{ user (no password), accessToken }</code>. Throws <code>AppError('Invalid credentials.', 401)</code> for unknown email or bad password (same message for both).</li><li><code>registerUser(input)</code> in <code>services/auth.service.ts</code> → 409 if email exists; <code>bcrypt.hash(password, 10)</code>; <code>user.create</code>. Returns user without <code>password</code>.</li></ul>
+<h3 id="tender-lifecycle">Tender lifecycle</h3>
+<ul><li><code>createTender(userId, role, userName, input)</code> → 403 unless <code>role === 'company'</code>. Writes a <code>Tender</code> with <code>status: draft</code>, <code>companyName: userName</code>, <code>deadline</code> parsed to <code>Date</code>, owner connected. Returns the tender.</li><li><code>publishTender(tenderId, userId)</code> → <code>findUnique</code>; 404 if missing; 403 if <code>companyId !== userId</code>; <code>assertTenderTransition(status, open)</code>; update to <code>open</code>.</li><li><code>closeTender(tenderId, userId)</code> → same 404 / 403 order; <code>assertTenderTransition(status, closed)</code>; reads pending bids' <code>vendorId</code>s; updates to <code>closed</code>; then <code>notify(..., 'tender_closed')</code> per pending vendor.</li><li><code>cancelTender(tenderId, userId)</code> → same shape with target <code>cancelled</code> and <code>tender_cancelled</code> notifications. Bid statuses are not changed.</li><li><code>updateTender(tenderId, userId, input)</code> → 404 / 403; 400 if <code>awarded</code> or <code>cancelled</code>; spreads <code>input</code> into <code>update</code>, converting <code>deadline</code>.</li><li><code>deleteTender(tenderId, userId)</code> → 404 / 403; 400 if <code>awarded</code>; <code>tender.delete</code> (Prisma cascades to bids and questions, questions cascade to answers).</li><li><code>reviewTender(tenderId, role, evaluatorId, input)</code> → 403 unless admin; 404; sets <code>rating</code> and <code>evaluatorId</code>; <code>notify(companyId, ..., 'tender_reviewed')</code>.</li></ul>
+<h3 id="lazy-expiry">Lazy expiry</h3>
+<ul><li><code>autoExpireTender(tenderId)</code> (private) → <code>findUnique</code>; returns <code>null</code> if missing. If <code>status === open</code> and <code>now &gt; deadline</code>: <code>update</code> to <code>closed</code>, read pending bids, <code>notify</code> each vendor <code>tender_closed</code>, return the updated tender. Else return the tender unchanged. Called by <code>getTenderById</code>, <code>createBid</code>, <code>getBidsForTender</code>, <code>askQuestion</code>.</li><li><code>autoExpireAll()</code> (private) → <code>findMany({ status: open, deadline &lt; now })</code> (uses <code>@@index([status, deadline])</code>); <code>updateMany</code> to <code>closed</code>; for each, read pending bids and notify. Called by <code>getAllTenders</code> only.</li></ul>
+<h3 id="queries">Queries</h3>
+<ul><li><code>getAllTenders({ page, limit, category, status, role })</code> → <code>autoExpireAll()</code>; <code>parseTenderStatus(status)</code>; <code>null</code> → empty page. Resolved status: parsed value, else <code>open</code> (the controller never passes <code>role</code>, so the admin branch is not reached from this route). Category is a case-insensitive <code>equals</code>. Runs <code>findMany</code> (skip/take, owner summary, <code>_count.bids</code>, newest first) and <code>count</code> in <code>Promise.all</code>.</li><li><code>searchTenders(name, page, limit)</code> → <code>title contains name</code> (case-insensitive), <code>status: open</code>, paginated. Does not call <code>autoExpireAll</code>.</li><li><code>getMyTenders(userId, role)</code> → 403 unless company; own tenders with bid counts.</li><li><code>getWonTenders(userId)</code> → <code>buyerId = userId AND status = awarded</code>.</li><li><code>getTenderById(tenderId)</code> → <code>autoExpireTender</code>; <code>findUnique</code> with owner and bid count; 404.</li><li><code>getTenderStats(tenderId, userId)</code> → 404 / 403; reads all bid amounts and statuses; returns counts by status and min / max / avg of all amounts.</li><li><code>getAllCategories()</code> → reads every tender's <code>category</code>, de-duplicates with <code>Set</code>.</li></ul>
+<h3 id="bids">Bids</h3>
+<ul><li><code>createBid(tenderId, vendorId, role, input)</code> → 403 unless vendor. <code>Promise.all([autoExpireTender(tenderId), user.findUnique(vendorId)])</code>. 404 if no tender; 400 if not <code>open</code>; 400 if <code>amount &lt; minimumBid</code>; 409 if any bid by this vendor exists on this tender (<code>findFirst</code>). Creates bid <code>pending</code> with <code>vendorName</code> and <code>companyId</code> copied from the tender. <code>notify(companyId, ..., 'bid_received')</code>.</li><li><code>getBidsForTender(tenderId, userId, role)</code> → <code>autoExpireTender</code>; 404. Vendor → only own bid (or <code>[]</code>). Company → 403 unless owner. Otherwise all bids with <code>vendor</code> (password stripped by <code>safeVendor</code>).</li><li><code>getBidById(tenderId, bidId, userId, role)</code> → <code>findFirst({ id, tenderId })</code>; 404; vendor 403 unless own.</li><li><code>withdrawBid(bidId, userId)</code> → 404; 403 unless <code>vendorId === userId</code>; <code>assertBidTransition(status, withdrawn)</code>; update.</li><li><code>deleteBid(bidId, userId)</code> → same checks as withdraw, then <code>bid.delete</code>.</li><li><code>rejectBid(bidId, userId)</code> → loads bid with tender; 404; 403 unless tender owner; <code>assertBidTransition(status, rejected)</code>; update; <code>notify(vendorId, ..., 'bid_rejected')</code>.</li><li><code>acceptBid(bidId, userId)</code> →</li><li>Step 1: <code>bid.findUnique({ include: { tender: true } })</code>; 404.</li><li>Step 2: 403 unless <code>bid.tender.companyId === userId</code> (ownership before state).</li><li>Step 3: <code>assertBidTransition(bid.status, accepted)</code> and <code>assertTenderTransition(bid.tender.status, awarded)</code> — tender must be <code>open</code> or <code>closed</code>.</li><li>Step 4: pre-capture <code>othersToReject</code> = pending bids on the tender except this one (<code>vendorId</code> only). Must run before step 5, which flips them to <code>rejected</code>.</li><li>Step 5: <code>prisma.$transaction([bid.update → accepted, tender.update → awarded + buyerId, bid.updateMany pending others → rejected])</code>. All-or-nothing.</li><li>Step 6: after commit, <code>notify</code> winner <code>bid_accepted</code> and each captured loser <code>bid_rejected</code>.</li><li>Returns <code>{ acceptedBid, updatedTender }</code>.</li></ul>
+<h3 id="qa">Q&amp;A</h3>
+<ul><li><code>askQuestion(tenderId, userId, role, input)</code> → 403 unless vendor; <code>autoExpireTender</code>; 404; 400 unless <code>open</code>; creates <code>Question</code> including asker summary; <code>notify(companyId, ..., 'question_asked')</code>.</li><li><code>getQuestions(tenderId)</code> → 404; questions newest first, each with asker and answers (oldest first) with owner role.</li><li><code>answerQuestion(tenderId, questionId, userId, role, input)</code> → 403 unless company or admin; <code>question.findFirst({ id, tenderId })</code> (prevents answering a question via another tender's URL); 404; company must own the tender (403); creates <code>Answer</code>; <code>notify(question.userId, ..., 'question_answered')</code>.</li></ul>
+<h3 id="notifications-and-admin">Notifications and admin</h3>
+<ul><li><code>getMyNotifications(userId)</code>, <code>getUnreadCount(userId)</code> in <code>services/notification.service.ts</code> → <code>findMany</code> / <code>count</code> by <code>userId</code> (and <code>read: false</code>).</li><li><code>markRead(notifId, userId)</code> → 404; 403 unless owner; update <code>read: true</code>.</li><li><code>markAllRead(userId)</code> → <code>updateMany({ userId, read: false })</code>.</li><li><code>getStats(role)</code> in <code>services/admin.service.ts</code> → 403 unless admin; ten <code>count</code> queries in <code>Promise.all</code>.</li><li><code>getAllTendersAdmin(role, page, limit, status?, category?)</code> → 403 unless admin; <code>parseTenderStatus</code>; category <code>contains</code> (case-insensitive); paginated with owner email.</li></ul>
+<h3 id="response-path">Response path</h3>
+<ul><li><code>legacyFields(req, res, next)</code> → replaces <code>res.json</code> with a wrapper that runs <code>mirror(body)</code> first.</li><li><code>errorMiddleware(err, req, res, next)</code> → <code>AppError</code> → its status; <code>ZodError</code> → 400; <code>{status}</code> → that status; else logs and returns 500.</li></ul>
+<hr>
+<h2 id="6-dry-runs">6. Dry runs</h2>
+<p>Sample actors (ObjectIds shortened only in prose; full values in payloads):</p>
+<table><tr><th>Actor</th><th>id</th><th>role</th></tr>
+<tr><td>Acme Infra</td><td><code>66f1a2b3c4d5e6f7a8b9c0d1</code></td><td>company</td></tr>
+<tr><td>BuildRight</td><td><code>66f1a2b3c4d5e6f7a8b9c0e2</code></td><td>vendor</td></tr>
+<tr><td>SteelCo</td><td><code>66f1a2b3c4d5e6f7a8b9c0e3</code></td><td>vendor</td></tr>
+<tr><td>Priya (admin)</td><td><code>66f1a2b3c4d5e6f7a8b9c0f4</code></td><td>admin</td></tr>
+</table>
+<h3 id="dry-run-1-create-and-publish-a-tender-happy-path">Dry run 1 — create and publish a tender (happy path)</h3>
+<p>Request: <code>POST /v1/tenders</code> as Acme, body <code>{ "title": "Road resurfacing NH-48", "category": "Infrastructure", "cost": 500000, "deadline": "2026-10-10T18:00:00.000Z" }</code>.</p>
+<ol><li><code>authMiddleware</code> → JWT payload <code>{ id: "66f1...c0d1", exp: ... }</code> verifies; <code>req.user = { id: "66f1...c0d1", role: "company", name: "Acme Infra" }</code>.</li><li><code>validate(CreateTenderDto)</code> → refine passes (<code>cost</code> present); transform → <code>{ title, category, deadline, minimumBid: 500000 }</code> (<code>cost</code> removed).</li><li><code>createTender("66f1...c0d1", "company", "Acme Infra", input)</code> → role ok → insert.</li><li>DB after: <code>Tender { id: "66f2aa00000000000000a001", status: "draft", minimumBid(cost): 500000, companyId: "66f1...c0d1", companyName: "Acme Infra", deadline: 2026-10-10T18:00Z }</code>.</li><li><code>legacyFields</code> → response <code>data</code> contains both <code>minimumBid: 500000</code> and <code>cost: 500000</code>. HTTP 201.</li></ol>
+<p>Request: <code>PATCH /v1/tenders/66f2aa00000000000000a001/publish</code> as Acme.</p>
+<ol><li><code>publishTender</code> → found; <code>companyId === userId</code>; <code>assertTenderTransition("draft", "open")</code> → <code>TENDER_TRANSITIONS.draft</code> includes <code>open</code> → ok.</li><li>DB after: <code>status: "open"</code>. HTTP 200 <code>Tender published.</code></li></ol>
+<h3 id="dry-run-2-vendor-bids-below-the-floor-then-bids-correctly-validation-failure">Dry run 2 — vendor bids below the floor, then bids correctly (validation failure)</h3>
+<p>Request: <code>POST /v1/tenders/66f2...a001/bids</code> as BuildRight, body <code>{ "amount": 450000, "message": "Crew of 40, 21 days" }</code>. Time: 2026-10-01.</p>
+<ol><li><code>validate(CreateBidDto)</code> → <code>amount</code> positive → passes.</li><li><code>createBid(..., role "vendor", ...)</code> → <code>autoExpireTender</code> → status <code>open</code>, deadline 2026-10-10 not passed → returns tender unchanged.</li><li><code>450000 &lt; 500000</code> → throws <code>AppError("Bid amount must be at least ₹500000 (the tender reserve price).", 400)</code>.</li><li><code>errorMiddleware</code> → HTTP 400 <code>{ success: false, message: "Bid amount must be at least ₹500000 ..." }</code>. DB unchanged.</li></ol>
+<p>Retry with <code>{ "amount": 520000, "message": "Crew of 40, 21 days" }</code>:</p>
+<ol><li>Status <code>open</code>, <code>520000 &gt;= 500000</code>, <code>findFirst({ tenderId, vendorId })</code> → null.</li><li>DB after: <code>Bid { id: "66f3bb00000000000000b001", status: "pending", amount: 520000, vendorId: "...c0e2", companyId: "...c0d1", vendorName: "BuildRight" }</code>.</li><li><code>notify("...c0d1", "BuildRight has submitted a bid on \"Road resurfacing NH-48\".", "bid_received")</code> → queued, not awaited. HTTP 201.</li></ol>
+<p>SteelCo then bids 510000 → <code>Bid 66f3...b002 pending</code>.</p>
+<p>A second POST by BuildRight → <code>findFirst</code> returns <code>b001</code> → 409 <code>You have already submitted a bid for this tender.</code></p>
+<h3 id="dry-run-3-company-accepts-a-bid-atomic-award">Dry run 3 — company accepts a bid (atomic award)</h3>
+<p>State before: tender <code>a001</code> <code>open</code>; bids <code>b001</code> (BuildRight, 520000, pending), <code>b002</code> (SteelCo, 510000, pending).</p>
+<p>Request: <code>PUT /v1/tenders/bids/66f3bb00000000000000b001/accept</code> as Acme.</p>
+<ol><li><code>bid.findUnique(b001, include tender)</code> → found; <code>bid.tender.companyId === "...c0d1"</code> → owner ok.</li><li><code>assertBidTransition("pending", "accepted")</code> → ok. <code>assertTenderTransition("open", "awarded")</code> → ok.</li><li>Pre-capture: <code>findMany({ tenderId: a001, id != b001, status: pending })</code> → <code>[{ vendorId: "...c0e3" }]</code>.</li><li>Transaction commits three writes:</li></ol>
+<table><tr><th>Document</th><th>Before</th><th>After</th></tr>
+<tr><td><code>Bid b001</code></td><td>pending</td><td>accepted</td></tr>
+<tr><td><code>Tender a001</code></td><td>open, <code>buyerId: null</code></td><td>awarded, <code>buyerId: "...c0e2"</code></td></tr>
+<tr><td><code>Bid b002</code></td><td>pending</td><td>rejected (via <code>updateMany</code>, count 1)</td></tr>
+</table>
+<ol><li>After commit: <code>notify("...c0e2", "Congratulations! ...", "bid_accepted")</code>; <code>notify("...c0e3", "Your bid on ... was not selected.", "bid_rejected")</code>.</li><li>HTTP 200 <code>data: { acceptedBid: {... status: "accepted"}, updatedTender: {... status: "awarded", cost: 500000, minimumBid: 500000} }</code>.</li><li><code>GET /v1/tenders/won</code> as BuildRight now returns <code>a001</code>.</li></ol>
+<p>If step 3 ran after step 4, the <code>status: pending</code> filter would match nothing and SteelCo would receive no notification.</p>
+<h3 id="dry-run-4-lazy-expiry-closes-a-tender-on-read-edge-case">Dry run 4 — lazy expiry closes a tender on read (edge case)</h3>
+<p>State: tender <code>66f2aa00000000000000a002</code> "Solar panels for depot", <code>open</code>, deadline <code>2026-09-25T12:00Z</code>; one pending bid by SteelCo. Nobody has read it since the deadline. Time now: 2026-09-26T09:00Z.</p>
+<p>Request: <code>GET /v1/tenders/66f2...a002</code> as BuildRight.</p>
+<ol><li><code>getTenderById</code> → <code>autoExpireTender(a002)</code> → <code>status === open</code> and <code>now &gt; deadline</code> → <code>update</code> → <code>status: closed</code>.</li><li>Reads pending bids → <code>[{ vendorId: "...c0e3" }]</code> → <code>notify("...c0e3", "The tender \"Solar panels for depot\" has closed — the submission deadline has passed.", "tender_closed")</code>.</li><li>Re-reads the tender with owner and <code>_count</code> → returns <code>status: "closed"</code>. HTTP 200.</li></ol>
+<p>Then BuildRight tries <code>POST /v1/tenders/66f2...a002/bids</code> with <code>{ "amount": 90000 }</code>:</p>
+<ol><li><code>autoExpireTender</code> → already <code>closed</code> → unchanged.</li><li><code>tender.status !== open</code> → 400 <code>This tender is not accepting bids.</code></li></ol>
+<p>Acme can still award SteelCo's bid: <code>assertTenderTransition("closed", "awarded")</code> is allowed.</p>
+<h3 id="dry-run-5-illegal-transition-and-wrong-actor-error-paths">Dry run 5 — illegal transition and wrong actor (error paths)</h3>
+<p>State: tender <code>a001</code> is <code>awarded</code> (after dry run 3).</p>
+<p>Request A: <code>PATCH /v1/tenders/66f2...a001/cancel</code> as Acme.</p>
+<ol><li><code>cancelTender</code> → found; owner ok.</li><li><code>assertTenderTransition("awarded", "cancelled")</code> → <code>TENDER_TRANSITIONS.awarded</code> is <code>[]</code> → throws <code>AppError('A tender in "awarded" is in a terminal state and cannot change.', 400)</code>.</li><li>The pending-bid read and update never run. DB unchanged. HTTP 400.</li></ol>
+<p>Request B: <code>PUT /v1/tenders/bids/66f3bb00000000000000b002/accept</code> as SteelCo (a vendor).</p>
+<ol><li><code>acceptBid</code> → bid found; <code>bid.tender.companyId ("...c0d1") !== "...c0e3"</code> → 403 <code>You do not have permission to accept this bid.</code></li><li>The state check never runs, so the caller learns nothing about the bid's status. HTTP 403.</li></ol>
+<p>Request C: <code>PUT /v1/tenders/bids/66f3...b002/accept</code> as Acme.</p>
+<ol><li>Owner ok. <code>assertBidTransition("rejected", "accepted")</code> → terminal → 400 <code>A bid that is "rejected" is in a terminal state and cannot change.</code></li></ol>
+<hr>
+<h2 id="7-issues">7. Issues</h2>
+<h3 id="7a-fixed">7a. Fixed</h3>
+<table><tr><th>#</th><th>Issue</th><th>Where</th><th>Fix</th><th>Commit</th></tr>
+<tr><td>F1</td><td>Deleting the admin who reviewed a tender, or the vendor who won it, cascaded and deleted the tender plus all its bids, questions and answers.</td><td><code>prisma/schema.prisma</code> (<code>Tender.evaluator</code>, <code>Tender.buyer</code>)</td><td><code>onDelete: SetNull</code> on both (fields were already nullable). <code>owner</code> keeps <code>Cascade</code>.</td><td><code>8e77025</code></td></tr>
+<tr><td>F2</td><td>Every status and role was a free-text <code>String</code>; guards compared string literals with no compile-time check.</td><td><code>prisma/schema.prisma</code>, services</td><td>Prisma enums <code>UserRole</code>, <code>TenderStatus</code>, <code>BidStatus</code>, <code>NotificationType</code>, member names identical to stored strings (no data migration). The conversion surfaced six latent type errors: untyped status filters reaching queries in three places, an untyped notification type, and a stale <code>cost</code> in a <code>select</code>.</td><td><code>8e77025</code></td></tr>
+<tr><td>F3</td><td>No indexes; every list query was a collection scan.</td><td><code>prisma/schema.prisma</code></td><td>Eight <code>@@index</code> entries on <code>Bid</code>, <code>Tender</code>, <code>Notification</code>, <code>Question</code>, <code>Answer</code>; applied with <code>prisma db push</code>.</td><td><code>8e77025</code></td></tr>
+<tr><td>F4</td><td>Transition rules were spread across five service functions; no single place to read the machine.</td><td><code>services/tender.service.ts</code></td><td><code>domain/tender-state.ts</code> with <code>TENDER_TRANSITIONS</code>, <code>BID_TRANSITIONS</code>, <code>assertTenderTransition</code>, <code>assertBidTransition</code>. Same or stricter behaviour; error messages now name allowed targets.</td><td><code>8e77025</code></td></tr>
+<tr><td>F5</td><td><code>closeTender</code> and <code>cancelTender</code> notified vendors before the status update; a failed update still told vendors the tender changed.</td><td><code>services/tender.service.ts</code></td><td>Notifications moved after the <code>update</code>, matching <code>acceptBid</code>.</td><td><code>8e77025</code></td></tr>
+<tr><td>F6</td><td><code>User.hasNotification</code> duplicated the <code>Notification</code> table and was referenced nowhere.</td><td><code>prisma/schema.prisma</code></td><td>Field removed.</td><td><code>8e77025</code></td></tr>
+<tr><td>F7</td><td><code>User.email</code> and <code>User.password</code> were optional; a nullable <code>@unique</code> allows many nulls.</td><td><code>prisma/schema.prisma</code></td><td>Both required. Data verified 2026-09-15: every user row has both.</td><td><code>8e77025</code></td></tr>
+<tr><td>F8</td><td><code>Tender.cost</code> actually meant minimum acceptable bid.</td><td>schema, DTOs</td><td>Renamed to <code>minimumBid</code> with <code>@map("cost")</code> (stored field unchanged), DTOs accept <code>cost</code> or <code>minimumBid</code>, <code>legacyFields</code> middleware re-emits <code>cost</code> so the deployed frontend keeps working.</td><td><code>8e77025</code></td></tr>
+<tr><td>F9</td><td>Unknown <code>?status=</code> values could not be passed to an enum filter.</td><td><code>domain/tender-state.ts</code></td><td><code>parseTenderStatus</code> returns <code>null</code> for unknown values; services return an empty page (same observable result as before).</td><td><code>8e77025</code></td></tr>
+<tr><td>F10</td><td>Old <code>jsonwebtoken</code> package had outdated internal dependencies.</td><td>auth middleware and auth controller (JavaScript files at the time, since ported to <code>auth.middleware.ts</code> / <code>auth.service.ts</code>)</td><td>Switched signing and verification to <code>jose</code>; later pinned to <code>jose</code> v4 (<code>c6a4b29</code>).</td><td><code>fa9b20b</code></td></tr>
+<tr><td>F11</td><td>Frontend read <code>VITE_API_URL</code> through an <code>import.meta</code> cast with no Vite types.</td><td><code>frontend/src/api/client.ts</code></td><td>Uses <code>import.meta.env.VITE_API_URL</code> with <code>vite-env.d.ts</code> reference types.</td><td><code>a7649ee</code></td></tr>
+<tr><td>F12</td><td>Home-page search used a separate debounced server search whose results bypassed the active tab and filters.</td><td><code>frontend/src/Components/home/Home.jsx</code></td><td>Search became one client-side filter (title or description) applied together with category, price and tab.</td><td><code>c4a7da8</code></td></tr>
+<tr><td>F13</td><td>Tenders stayed <code>open</code> after their deadline (no expiry at all).</td><td><code>services/tender.service.ts</code></td><td>Added lazy expiry (<code>autoExpireTender</code>, <code>autoExpireAll</code>) on read paths.</td><td><code>cded7fb</code></td></tr>
+</table>
+<hr>
+<h2 id="8-tradeoffs">8. Tradeoffs</h2>
+<table><tr><th>Decision</th><th>Gain</th><th>Cost</th></tr>
+<tr><td>MongoDB + Prisma</td><td>Typed client, enums, emulated relations, quick schema changes via <code>db push</code></td><td>Referential actions run in the ORM, not the DB; transactions need a replica set; no migration history.</td></tr>
+<tr><td>Lazy expiry instead of a scheduler</td><td>No extra process or cron infrastructure</td><td>Expiry depends on read traffic.</td></tr>
+<tr><td>Fire-and-forget notifications</td><td>Request latency and success never depend on the notification write</td><td>Delivery is best-effort.</td></tr>
+<tr><td>Polling (30 s) instead of WebSocket</td><td>Stateless API, trivial horizontal scaling</td><td>Up to 30 s latency on the badge; constant background requests.</td></tr>
+<tr><td>Role checks inside services, not route middleware</td><td>Role and ownership checks live next to the business rule</td><td>A new route must remember to call a service that checks.</td></tr>
+<tr><td><code>legacyFields</code> shim</td><td>Field rename shipped without breaking the deployed frontend</td><td>Every JSON response is walked recursively; remove once no client reads <code>cost</code>.</td></tr>
+</table>
+<h2 id="9-summary">9. Summary</h2>
+<p>The logic layer is the strong part: strict layering, thin controllers, centralised errors, named lifecycle operations that check ownership before state, and an award path that is atomic, pre-captures losing vendors, and notifies only after commit. The schema was the weak part and was hardened in <code>8e77025</code> (enums, indexes, safe cascades, a declared state machine) without breaking the deployed client.</p>
+</div></main></body></html>
