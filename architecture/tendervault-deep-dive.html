@@ -230,7 +230,7 @@
 <h3 id="flow-b-vendor-submits-a-bid">Flow B — vendor submits a bid</h3>
 <ol><li><code>Components/bids/BidList.jsx</code> → <code>createbid(tenderId, { amount, message })</code>.</li><li><code>routes/tender.routes.ts</code> (<code>POST /:tenderId/bids</code>) → <code>authMiddleware</code> → <code>validate(CreateBidDto)</code> → <code>tc.createBid</code>.</li><li><code>services/tender.service.ts#createBid</code> → role check; <code>autoExpireTender</code> (may close the tender); checks <code>open</code>, <code>amount &gt;= minimumBid</code>, no existing bid; creates the bid.</li><li><code>utils/notify.ts</code> → un-awaited <code>bid_received</code> notification for the company.</li></ol>
 <h3 id="flow-c-company-accepts-a-bid-award">Flow C — company accepts a bid (award)</h3>
-<ol><li><code>Components/bids/BidList.jsx</code> → confirmation modal → <code>acceptBid(bidId)</code>.</li><li><code>routes/tender.routes.ts</code> (<code>PUT /bids/:bidId/accept</code>, declared before <code>/:tenderId</code>) → <code>authMiddleware</code> → <code>tc.acceptBid</code>.</li><li><code>services/tender.service.ts#acceptBid</code> → ownership, bid and tender transition checks; reads losing vendors; runs a three-write <code>prisma.$transaction</code>.</li><li><code>utils/notify.ts</code> → <code>bid_accepted</code> to the winner, <code>bid_rejected</code> to each loser, after commit.</li></ol>
+<ol><li><code>Components/bids/BidList.jsx</code> → confirmation modal → <code>acceptBid(bidId)</code>.</li><li><code>routes/tender.routes.ts</code> (<code>PATCH /bids/:bidId/accept</code>, declared before <code>/:tenderId</code>) → <code>authMiddleware</code> → <code>tc.acceptBid</code>.</li><li><code>services/tender.service.ts#acceptBid</code> → ownership, bid and tender transition checks; reads losing vendors; runs a three-write <code>prisma.$transaction</code>.</li><li><code>utils/notify.ts</code> → <code>bid_accepted</code> to the winner, <code>bid_rejected</code> to each loser, after commit.</li></ol>
 <h3 id="flow-d-notification-bell">Flow D — notification bell</h3>
 <ol><li><code>Components/notifications/NotificationBell.jsx</code> → <code>useUnreadCount</code> (polls 30 s) and <code>useNotifications</code>.</li><li><code>routes/notification.routes.ts</code> → <code>authMiddleware</code> → <code>getUnreadCount</code> / <code>getMyNotifications</code>.</li><li><code>services/notification.service.ts</code> → <code>count</code> / <code>findMany</code> on <code>Notification</code> by <code>userId</code> (served by <code>@@index([userId, read])</code>).</li><li>Click → <code>useMarkRead</code> → <code>PATCH /notifications/:id/read</code> → <code>markRead</code> checks <code>notif.userId === userId</code>.</li></ol>
 <hr>
@@ -311,8 +311,8 @@
 <tr><td>POST</td><td><code>/auth/login</code></td><td>none</td><td><code>LoginDto</code></td><td><code>{ user, accessToken }</code>; also sets <code>accessToken</code> cookie</td></tr>
 <tr><td>POST</td><td><code>/auth/logout</code></td><td>auth</td><td>—</td><td>clears cookie</td></tr>
 <tr><td>GET</td><td><code>/users/me</code></td><td>auth</td><td>—</td><td>current user</td></tr>
-<tr><td>PUT</td><td><code>/users/me</code></td><td>auth</td><td><code>UpdateProfileDto</code></td><td>updated user</td></tr>
-<tr><td>PUT</td><td><code>/users/me/password</code></td><td>auth</td><td><code>ChangePasswordDto</code></td><td>—</td></tr>
+<tr><td>PATCH</td><td><code>/users/me</code></td><td>auth</td><td><code>UpdateProfileDto</code></td><td>updated user</td></tr>
+<tr><td>POST</td><td><code>/users/me/password</code></td><td>auth</td><td><code>ChangePasswordDto</code></td><td>—</td></tr>
 <tr><td>GET</td><td><code>/users/me/bids</code></td><td>vendor</td><td>—</td><td>bids with tender summary</td></tr>
 <tr><td>GET</td><td><code>/users/vendors</code>, <code>/users/companies</code></td><td>auth</td><td>—</td><td>user list without passwords</td></tr>
 <tr><td>GET</td><td><code>/users/:userId</code></td><td>auth</td><td>—</td><td>user without password</td></tr>
@@ -324,18 +324,18 @@
 <tr><td>GET</td><td><code>/tenders/categories</code></td><td>auth</td><td>—</td><td>distinct category strings</td></tr>
 <tr><td>POST</td><td><code>/tenders/upload</code></td><td>auth</td><td>multipart <code>file</code></td><td><code>{ imageUrl }</code></td></tr>
 <tr><td>GET</td><td><code>/tenders/:tenderId</code></td><td>auth</td><td>—</td><td>tender + owner + bid count (after lazy expiry)</td></tr>
-<tr><td>PUT</td><td><code>/tenders/:tenderId</code></td><td>owner</td><td><code>UpdateTenderDto</code></td><td>updated tender; 400 if awarded/cancelled</td></tr>
+<tr><td>PATCH</td><td><code>/tenders/:tenderId</code></td><td>owner</td><td><code>UpdateTenderDto</code></td><td>updated tender; 400 if awarded/cancelled</td></tr>
 <tr><td>DELETE</td><td><code>/tenders/:tenderId</code></td><td>owner</td><td>—</td><td>—; 400 if awarded</td></tr>
 <tr><td>GET</td><td><code>/tenders/:tenderId/stats</code></td><td>owner</td><td>—</td><td><code>{ total, byStatus, amounts: {min,max,avg} or null }</code></td></tr>
 <tr><td>PATCH</td><td><code>/tenders/:tenderId/publish</code></td><td>owner</td><td>—</td><td>tender (<code>open</code>)</td></tr>
 <tr><td>PATCH</td><td><code>/tenders/:tenderId/close</code></td><td>owner</td><td>—</td><td>tender (<code>closed</code>)</td></tr>
 <tr><td>PATCH</td><td><code>/tenders/:tenderId/cancel</code></td><td>owner</td><td>—</td><td>tender (<code>cancelled</code>)</td></tr>
-<tr><td>PUT</td><td><code>/tenders/:tenderId/review</code></td><td>admin</td><td><code>ReviewTenderDto</code></td><td>tender with <code>rating</code>, <code>evaluatorId</code></td></tr>
+<tr><td>PATCH</td><td><code>/tenders/:tenderId/review</code></td><td>admin</td><td><code>ReviewTenderDto</code></td><td>tender with <code>rating</code>, <code>evaluatorId</code></td></tr>
 <tr><td>GET</td><td><code>/tenders/:tenderId/bids</code></td><td>auth</td><td>—</td><td>vendor: own bid only; owner company / admin: all bids</td></tr>
 <tr><td>POST</td><td><code>/tenders/:tenderId/bids</code></td><td>vendor</td><td><code>CreateBidDto</code></td><td>bid (201)</td></tr>
 <tr><td>GET</td><td><code>/tenders/:tenderId/bids/:bidId</code></td><td>auth</td><td>—</td><td>bid; vendors only their own</td></tr>
-<tr><td>PUT</td><td><code>/tenders/bids/:bidId/accept</code></td><td>tender owner</td><td>—</td><td><code>{ acceptedBid, updatedTender }</code></td></tr>
-<tr><td>PUT</td><td><code>/tenders/bids/:bidId/reject</code></td><td>tender owner</td><td>—</td><td>bid (<code>rejected</code>)</td></tr>
+<tr><td>PATCH</td><td><code>/tenders/bids/:bidId/accept</code></td><td>tender owner</td><td>—</td><td><code>{ acceptedBid, updatedTender }</code></td></tr>
+<tr><td>PATCH</td><td><code>/tenders/bids/:bidId/reject</code></td><td>tender owner</td><td>—</td><td>bid (<code>rejected</code>)</td></tr>
 <tr><td>PATCH</td><td><code>/tenders/bids/:bidId/withdraw</code></td><td>bid's vendor</td><td>—</td><td>bid (<code>withdrawn</code>)</td></tr>
 <tr><td>DELETE</td><td><code>/tenders/bids/:bidId</code></td><td>bid's vendor</td><td>—</td><td>— (pending bids only)</td></tr>
 <tr><td>GET</td><td><code>/tenders/:tenderId/questions</code></td><td>auth</td><td>—</td><td>questions with asker and answers</td></tr>
@@ -399,7 +399,7 @@
 <p>A second POST by BuildRight → <code>findFirst</code> returns <code>b001</code> → 409 <code>You have already submitted a bid for this tender.</code></p>
 <h3 id="dry-run-3-company-accepts-a-bid-atomic-award">Dry run 3 — company accepts a bid (atomic award)</h3>
 <p>State before: tender <code>a001</code> <code>open</code>; bids <code>b001</code> (BuildRight, 520000, pending), <code>b002</code> (SteelCo, 510000, pending).</p>
-<p>Request: <code>PUT /v1/tenders/bids/66f3bb00000000000000b001/accept</code> as Acme.</p>
+<p>Request: <code>PATCH /v1/tenders/bids/66f3bb00000000000000b001/accept</code> as Acme.</p>
 <ol><li><code>bid.findUnique(b001, include tender)</code> → found; <code>bid.tender.companyId === "...c0d1"</code> → owner ok.</li><li><code>assertBidTransition("pending", "accepted")</code> → ok. <code>assertTenderTransition("open", "awarded")</code> → ok.</li><li>Pre-capture: <code>findMany({ tenderId: a001, id != b001, status: pending })</code> → <code>[{ vendorId: "...c0e3" }]</code>.</li><li>Transaction commits three writes:</li></ol>
 <table><tr><th>Document</th><th>Before</th><th>After</th></tr>
 <tr><td><code>Bid b001</code></td><td>pending</td><td>accepted</td></tr>
@@ -419,9 +419,9 @@
 <p>State: tender <code>a001</code> is <code>awarded</code> (after dry run 3).</p>
 <p>Request A: <code>PATCH /v1/tenders/66f2...a001/cancel</code> as Acme.</p>
 <ol><li><code>cancelTender</code> → found; owner ok.</li><li><code>assertTenderTransition("awarded", "cancelled")</code> → <code>TENDER_TRANSITIONS.awarded</code> is <code>[]</code> → throws <code>AppError('A tender in "awarded" is in a terminal state and cannot change.', 400)</code>.</li><li>The pending-bid read and update never run. DB unchanged. HTTP 400.</li></ol>
-<p>Request B: <code>PUT /v1/tenders/bids/66f3bb00000000000000b002/accept</code> as SteelCo (a vendor).</p>
+<p>Request B: <code>PATCH /v1/tenders/bids/66f3bb00000000000000b002/accept</code> as SteelCo (a vendor).</p>
 <ol><li><code>acceptBid</code> → bid found; <code>bid.tender.companyId ("...c0d1") !== "...c0e3"</code> → 403 <code>You do not have permission to accept this bid.</code></li><li>The state check never runs, so the caller learns nothing about the bid's status. HTTP 403.</li></ol>
-<p>Request C: <code>PUT /v1/tenders/bids/66f3...b002/accept</code> as Acme.</p>
+<p>Request C: <code>PATCH /v1/tenders/bids/66f3...b002/accept</code> as Acme.</p>
 <ol><li>Owner ok. <code>assertBidTransition("rejected", "accepted")</code> → terminal → 400 <code>A bid that is "rejected" is in a terminal state and cannot change.</code></li></ol>
 <hr>
 <h2 id="7-issues">7. Issues</h2>

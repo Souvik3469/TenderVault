@@ -16,8 +16,8 @@ const router = Router();
 
 // ─── My account ───────────────────────────────────────────────────────────────
 router.get('/me', authMiddleware, myDetails);
-router.put('/me', authMiddleware, validate(UpdateProfileDto), updateProfile);
-router.put('/me/password', authMiddleware, validate(ChangePasswordDto), changePassword);
+router.patch('/me', authMiddleware, validate(UpdateProfileDto), updateProfile);
+router.post('/me/password', authMiddleware, validate(ChangePasswordDto), changePassword);
 router.get('/me/bids', authMiddleware, myBids);
 
 // ─── Directories (specific before :userId) ───────────────────────────────────

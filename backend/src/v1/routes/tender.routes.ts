@@ -17,8 +17,8 @@ const router = Router();
 // ─── Top-level bid routes (fixed paths BEFORE /:tenderId) ─────────────────────
 router.delete('/bids/:bidId',          authMiddleware, tc.deleteBid);
 router.patch('/bids/:bidId/withdraw',  authMiddleware, tc.withdrawBid);
-router.put('/bids/:bidId/accept',      authMiddleware, tc.acceptBid);
-router.put('/bids/:bidId/reject',      authMiddleware, tc.rejectBid);
+router.patch('/bids/:bidId/accept',    authMiddleware, tc.acceptBid);
+router.patch('/bids/:bidId/reject',    authMiddleware, tc.rejectBid);
 
 // ─── Image upload ──────────────────────────────────────────────────────────────
 router.post('/upload', authMiddleware, uploadSingle, tc.uploadImage);
@@ -35,7 +35,7 @@ router.get('/categories', authMiddleware, tc.getAllCategories);
 
 // ─── Tender item ───────────────────────────────────────────────────────────────
 router.get('/:tenderId',         authMiddleware, tc.getTenderById);
-router.put('/:tenderId',         authMiddleware, validate(UpdateTenderDto), tc.updateTender);
+router.patch('/:tenderId',       authMiddleware, validate(UpdateTenderDto), tc.updateTender);
 router.delete('/:tenderId',      authMiddleware, tc.deleteTender);
 router.get('/:tenderId/stats',   authMiddleware, tc.getTenderStats);
 
@@ -45,7 +45,7 @@ router.patch('/:tenderId/close',   authMiddleware, tc.closeTender);
 router.patch('/:tenderId/cancel',  authMiddleware, tc.cancelTender);
 
 // Admin review
-router.put('/:tenderId/review',  authMiddleware, validate(ReviewTenderDto), tc.reviewTender);
+router.patch('/:tenderId/review', authMiddleware, validate(ReviewTenderDto), tc.reviewTender);
 
 // ─── Bids scoped to a tender ───────────────────────────────────────────────────
 router.get('/:tenderId/bids',             authMiddleware, tc.getBidsForTender);

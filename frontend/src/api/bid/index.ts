@@ -40,12 +40,12 @@ export const deletebid = async (bidId: string): Promise<ApiResponse> => {
 };
 
 export const acceptBid = async (bidId: string): Promise<ApiResponse<Bid>> => {
-  const { data } = await apiClient.put<ApiResponse<Bid>>(`/tenders/bids/${bidId}/accept`);
+  const { data } = await apiClient.patch<ApiResponse<Bid>>(`/tenders/bids/${bidId}/accept`);
   return data;
 };
 
 export const rejectBid = async (bidId: string): Promise<ApiResponse<Bid>> => {
-  const { data } = await apiClient.put<ApiResponse<Bid>>(`/tenders/bids/${bidId}/reject`);
+  const { data } = await apiClient.patch<ApiResponse<Bid>>(`/tenders/bids/${bidId}/reject`);
   return data;
 };
 

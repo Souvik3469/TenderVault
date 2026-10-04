@@ -81,7 +81,7 @@ export const updateTender = async (
   tenderId: string,
   payload: UpdateTenderPayload
 ): Promise<ApiResponse<Tender>> => {
-  const { data } = await apiClient.put<ApiResponse<Tender>>(`/tenders/${tenderId}`, payload);
+  const { data } = await apiClient.patch<ApiResponse<Tender>>(`/tenders/${tenderId}`, payload);
   return data;
 };
 
@@ -94,7 +94,7 @@ export const reviewTender = async (
   tenderId: string,
   payload: ReviewTenderPayload
 ): Promise<ApiResponse<Tender>> => {
-  const { data } = await apiClient.put<ApiResponse<Tender>>(
+  const { data } = await apiClient.patch<ApiResponse<Tender>>(
     `/tenders/${tenderId}/review`,
     payload
   );

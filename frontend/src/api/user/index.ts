@@ -36,12 +36,12 @@ export const GetMyBids = async (): Promise<ApiResponse<Bid[]>> => {
 };
 
 export const updateProfile = async (payload: UpdateProfilePayload): Promise<ApiResponse<User>> => {
-  const { data } = await apiClient.put<ApiResponse<User>>('/users/me', payload);
+  const { data } = await apiClient.patch<ApiResponse<User>>('/users/me', payload);
   return data;
 };
 
 export const changePassword = async (payload: ChangePasswordPayload): Promise<ApiResponse> => {
-  const { data } = await apiClient.put<ApiResponse>('/users/me/password', payload);
+  const { data } = await apiClient.post<ApiResponse>('/users/me/password', payload);
   return data;
 };
 
