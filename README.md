@@ -21,6 +21,7 @@
 | Doc | What's in it |
 |---|---|
 | [`architecture/tendervault-deep-dive.html`](architecture/tendervault-deep-dive.html) | Architecture and domain walkthrough — the layering, the tender state machine and its guarded transitions, the atomic award-and-auto-reject path, Q&A, notifications, and a "what I'd do differently" section. Open in a browser. |
+| [`architecture/tendervault-flaws.md`](architecture/tendervault-flaws.md) | A severity-ordered audit of this codebase written after the fact. Eight of the twelve items were fixed in `8e77025`; the remaining four are open by choice, with the reasoning for each. |
 
 > **A note on the `Docs/` folder.** `Docs/` (SRS, SPMP, COCOMO estimate, Function Point metrics,
 > Gantt chart, DFDs, test-case workbook) is **academic coursework** produced for a university

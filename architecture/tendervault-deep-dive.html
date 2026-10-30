@@ -441,7 +441,6 @@
 <tr><td>F12</td><td>Home-page search used a separate debounced server search whose results bypassed the active tab and filters.</td><td><code>frontend/src/Components/home/Home.jsx</code></td><td>Search became one client-side filter (title or description) applied together with category, price and tab.</td><td><code>c4a7da8</code></td></tr>
 <tr><td>F13</td><td>Tenders stayed <code>open</code> after their deadline (no expiry at all).</td><td><code>services/tender.service.ts</code></td><td>Added lazy expiry (<code>autoExpireTender</code>, <code>autoExpireAll</code>) on read paths.</td><td><code>cded7fb</code></td></tr>
 </table>
-<hr>
 <h2 id="8-tradeoffs">8. Tradeoffs</h2>
 <table><tr><th>Decision</th><th>Gain</th><th>Cost</th></tr>
 <tr><td>MongoDB + Prisma</td><td>Typed client, enums, emulated relations, quick schema changes via <code>db push</code></td><td>Referential actions run in the ORM, not the DB; transactions need a replica set; no migration history.</td></tr>
